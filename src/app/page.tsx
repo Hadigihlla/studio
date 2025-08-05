@@ -226,6 +226,28 @@ export default function Home() {
 
     let toastMessage = "";
     let result: Result;
+    
+    // Apply penalties first
+    let penaltyToastDescription = "";
+    const penaltyDeductions: Record<string, number> = {};
+    
+    setPlayers(prevPlayers => {
+      return prevPlayers.map(player => {
+        const penalty = penalties[player.id];
+        if (penalty) {
+          const deduction = penalty === 'late' ? 2 : 3;
+          penaltyDeductions[player.name] = deduction;
+          return { ...player, points: player.points - deduction };
+        }
+        return player;
+      });
+    });
+
+    const penaltyMessages = Object.entries(penaltyDeductions);
+    if (penaltyMessages.length > 0) {
+        penaltyToastDescription = " Penalties applied: " + penaltyMessages.map(([name, points]) => `${name} -${points}pts`).join(', ') + '.';
+    }
+
 
     if (scores.teamA > scores.teamB) {
       result = 'A';
@@ -257,7 +279,7 @@ export default function Home() {
     setWinner(result);
     setLastToastInfo({
       title: "Game Over!",
-      description: toastMessage,
+      description: toastMessage + penaltyToastDescription,
     });
   };
   
@@ -402,5 +424,3 @@ export default function Home() {
     </>
   );
 }
-
-    
