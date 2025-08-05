@@ -17,4 +17,6 @@ export const initialPlayers: Player[] = [
   { id: 14, name: 'Joshua Kimmich', points: 82, status: 'undecided', matchesPlayed: 35, wins: 28, draws: 4, losses: 3, form: ['W', 'W', 'D', 'W', 'L'] },
   { id: 15, name: 'Alisson Becker', points: 81, status: 'undecided', matchesPlayed: 37, wins: 27, draws: 8, losses: 2, form: ['D', 'W', 'D', 'W', 'D'] },
   { id: 16, name: 'Karim Benzema', points: 80, status: 'undecided', matchesPlayed: 36, wins: 29, draws: 4, losses: 3, form: ['L', 'W', 'W', 'D', 'W'] },
+  { id: 17, name: 'Casemiro', points: 79, status: 'undecided', matchesPlayed: 35, wins: 25, draws: 6, losses: 4, form: ['D', 'W', 'L', 'D', 'W'] },
+  { id: 18, name: 'Thibaut Courtois', points: 78, status: 'undecided', matchesPlayed: 38, wins: 28, draws: 7, losses: 3, form: ['W', 'D', 'W', 'D', 'W'] },
 ];

@@ -1,4 +1,4 @@
-export type PlayerStatus = "in" | "out" | "undecided";
+export type PlayerStatus = "in" | "out" | "undecided" | "waiting";
 export type Result = "A" | "B" | "Draw";
 export type Form = ('W' | 'D' | 'L')[];
 

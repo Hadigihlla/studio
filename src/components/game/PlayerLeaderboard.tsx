@@ -10,7 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { ThumbsUp, ThumbsDown, Star, Edit, Trash, MoreVertical } from "lucide-react";
+import { ThumbsUp, ThumbsDown, Star, Edit, Trash, MoreVertical, Clock } from "lucide-react";
 import { Badge } from "../ui/badge";
 import {
   DropdownMenu,
@@ -143,6 +143,7 @@ export function PlayerLeaderboard({ players, onSetAvailability, isLocked, onEdit
                             {player.status === 'in' && <Badge variant="default" className="bg-green-500 hover:bg-green-500">IN</Badge>}
                             {player.status === 'out' && <Badge variant="destructive">OUT</Badge>}
                             {player.status === 'undecided' && <Badge variant="secondary">UNDECIDED</Badge>}
+                            {player.status === 'waiting' && <Badge variant="outline" className="text-amber-500 border-amber-500"><Clock className="w-3 h-3 mr-1"/>WAITING</Badge>}
                         </div>
                     )}
                 </TableCell>

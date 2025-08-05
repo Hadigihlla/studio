@@ -16,6 +16,8 @@ import { MatchHistory } from "@/components/game/MatchHistory";
 import { PlayerDialog } from "@/components/game/PlayerDialog";
 import { Button } from "@/components/ui/button";
 
+const MAX_PLAYERS_IN = 14;
+
 export default function Home() {
   const [players, setPlayers] = useState<Player[]>(initialPlayers);
   const [teams, setTeams] = useState<Team | null>(null);
@@ -28,7 +30,16 @@ export default function Home() {
   const { toast } = useToast();
 
   const sortedPlayers = useMemo(() => {
-    return [...players].sort((a, b) => b.points - a.points);
+    // Sort by status first to group them, then by points
+    const statusOrder: PlayerStatus[] = ["in", "waiting", "undecided", "out"];
+    return [...players].sort((a, b) => {
+        const statusA = statusOrder.indexOf(a.status);
+        const statusB = statusOrder.indexOf(b.status);
+        if (statusA !== statusB) {
+            return statusA - statusB;
+        }
+        return b.points - a.points;
+    });
   }, [players]);
 
   const playersIn = useMemo(() => {
@@ -69,19 +80,58 @@ export default function Home() {
   };
 
 
-  const handleSetAvailability = (playerId: number, status: PlayerStatus) => {
+  const handleSetAvailability = (playerId: number, newStatus: PlayerStatus) => {
     if (gamePhase !== 'availability') {
-      toast({
-        variant: "destructive",
-        title: "Action Locked",
-        description: "Cannot change availability after teams are drafted.",
-      });
-      return;
+        toast({
+            variant: "destructive",
+            title: "Action Locked",
+            description: "Cannot change availability after teams are drafted.",
+        });
+        return;
     }
-    setPlayers((prevPlayers) =>
-      prevPlayers.map((p) => (p.id === playerId ? { ...p, status } : p))
-    );
-  };
+
+    setPlayers(currentPlayers => {
+        const playersInCount = currentPlayers.filter(p => p.status === 'in').length;
+        const targetPlayer = currentPlayers.find(p => p.id === playerId);
+        if (!targetPlayer) return currentPlayers;
+
+        let newPlayers = [...currentPlayers];
+        
+        // Player wants to be IN
+        if (newStatus === 'in') {
+            if (playersInCount < MAX_PLAYERS_IN) {
+                // There's space, set status to 'in'
+                newPlayers = newPlayers.map(p => p.id === playerId ? { ...p, status: 'in' } : p);
+                toast({ title: "You're In!", description: `${targetPlayer.name} is confirmed for the game.` });
+            } else {
+                // No space, add to waiting list
+                newPlayers = newPlayers.map(p => p.id === playerId ? { ...p, status: 'waiting' } : p);
+                toast({ title: "Waiting List", description: `The game is full. ${targetPlayer.name} has been added to the waiting list.` });
+            }
+        } 
+        // Player wants to be OUT
+        else if (newStatus === 'out') {
+            const wasPlayerIn = targetPlayer.status === 'in';
+            newPlayers = newPlayers.map(p => p.id === playerId ? { ...p, status: 'out' } : p);
+            
+            // If a player who was 'in' drops out, check the waiting list
+            if (wasPlayerIn) {
+                // Find the first player on the waiting list (can be sorted by points or another metric)
+                const waitingList = newPlayers.filter(p => p.status === 'waiting').sort((a,b) => b.points - a.points);
+                if (waitingList.length > 0) {
+                    const nextPlayerInId = waitingList[0].id;
+                    newPlayers = newPlayers.map(p => p.id === nextPlayerInId ? { ...p, status: 'in' } : p);
+                    toast({ title: "Player Promoted", description: `${waitingList[0].name} has been moved from the waiting list to 'in'.`});
+                }
+            }
+        } else {
+             // For 'undecided' or other statuses
+             newPlayers = newPlayers.map(p => p.id === playerId ? { ...p, status: newStatus } : p);
+        }
+        
+        return newPlayers;
+    });
+};
 
   const handleDraftTeams = () => {
     const rankedPlayersIn = playersIn.sort((a, b) => b.points - a.points);
