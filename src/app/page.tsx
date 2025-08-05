@@ -53,8 +53,11 @@ export default function Home() {
 
   const handleSavePlayer = (playerData: Omit<Player, 'id' | 'status' | 'matchesPlayed' | 'wins' | 'draws' | 'losses' | 'form'> & { id?: number }) => {
     if (playerData.id) { // Editing existing player
-      setPlayers(prev => prev.map(p => p.id === playerData.id ? { ...p, name: playerData.name, points: playerData.points } : p));
-      toast({ title: "Player Updated", description: `${playerData.name}'s details have been saved.` });
+      const updatedPlayer = players.find(p => p.id === playerData.id);
+      if (updatedPlayer) {
+          setPlayers(prev => prev.map(p => p.id === playerData.id ? { ...p, name: playerData.name, points: playerData.points } : p));
+          toast({ title: "Player Updated", description: `${playerData.name}'s details have been saved.` });
+      }
     } else { // Adding new player
       const newPlayer: Player = {
         id: Date.now(),
@@ -98,17 +101,18 @@ export default function Home() {
         if (!targetPlayer) return currentPlayers;
 
         let newPlayers = [...currentPlayers];
+        let toastInfo: { title: string, description: string } | null = null;
         
         // Player wants to be IN
         if (newStatus === 'in') {
             if (playersInCount < MAX_PLAYERS_IN) {
                 // There's space, set status to 'in'
                 newPlayers = newPlayers.map(p => p.id === playerId ? { ...p, status: 'in' } : p);
-                toast({ title: "You're In!", description: `${targetPlayer.name} is confirmed for the game.` });
+                toastInfo = { title: "You're In!", description: `${targetPlayer.name} is confirmed for the game.` };
             } else {
                 // No space, add to waiting list
                 newPlayers = newPlayers.map(p => p.id === playerId ? { ...p, status: 'waiting' } : p);
-                toast({ title: "Waiting List", description: `The game is full. ${targetPlayer.name} has been added to the waiting list.` });
+                toastInfo = { title: "Waiting List", description: `The game is full. ${targetPlayer.name} has been added to the waiting list.` };
             }
         } 
         // Player wants to be OUT
@@ -134,6 +138,10 @@ export default function Home() {
              newPlayers = newPlayers.map(p => p.id === playerId ? { ...p, status: newStatus } : p);
         }
         
+        if (toastInfo) {
+            toast(toastInfo);
+        }
+
         return newPlayers;
     });
 };
