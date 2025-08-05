@@ -68,7 +68,7 @@ const FormIndicator = ({ result }: { result: 'W' | 'D' | 'L'}) => {
 export function PlayerLeaderboard({ players, onSetAvailability, isLocked, onEditPlayer, onDeletePlayer, rankOffset, hideRank = false }: PlayerLeaderboardProps) {
 
   const getRankContent = (rank: number) => {
-    if (hideRank) return null;
+    if (hideRank) return <span className="font-mono text-sm">-</span>;
 
     const rankNumber = <span className="font-mono text-sm">{rank}</span>;
     let rankIcon = null;
@@ -78,7 +78,7 @@ export function PlayerLeaderboard({ players, onSetAvailability, isLocked, onEdit
     else if (rank === 3) rankIcon = <Star className="w-5 h-5 text-amber-600 fill-amber-600" />;
     
     return (
-        <div className="flex items-center justify-center gap-1">
+        <div className="flex items-center justify-center gap-1 w-8">
             {rankNumber}
             {rankIcon}
         </div>

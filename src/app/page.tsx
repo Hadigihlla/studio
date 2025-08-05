@@ -232,15 +232,16 @@ export default function Home() {
     const penaltyDeductions: Record<string, number> = {};
     
     setPlayers(prevPlayers => {
-      return prevPlayers.map(player => {
-        const penalty = penalties[player.id];
-        if (penalty) {
+      let tempPlayers = [...prevPlayers];
+      Object.entries(penalties).forEach(([playerId, penalty]) => {
+        const playerIndex = tempPlayers.findIndex(p => p.id === Number(playerId));
+        if (playerIndex > -1 && penalty) {
           const deduction = penalty === 'late' ? 2 : 3;
-          penaltyDeductions[player.name] = deduction;
-          return { ...player, points: player.points - deduction };
+          penaltyDeductions[tempPlayers[playerIndex].name] = deduction;
+          tempPlayers[playerIndex] = { ...tempPlayers[playerIndex], points: tempPlayers[playerIndex].points - deduction };
         }
-        return player;
       });
+      return tempPlayers;
     });
 
     const penaltyMessages = Object.entries(penaltyDeductions);
@@ -298,10 +299,15 @@ export default function Home() {
   };
   
   const handleSetPenalty = (playerId: number, penalty: Penalty) => {
-    setPenalties(prev => ({
-      ...prev,
-      [playerId]: prev[playerId] === penalty ? undefined : penalty,
-    }));
+    setPenalties(prev => {
+      const newPenalties = {...prev};
+      if (newPenalties[playerId] === penalty) {
+        delete newPenalties[playerId];
+      } else {
+        newPenalties[playerId] = penalty;
+      }
+      return newPenalties;
+    });
   };
 
   return (
@@ -354,23 +360,21 @@ export default function Home() {
                             </div>
                         )}
                         
-                        {otherPlayers.length > 0 && (
-                            <div>
-                                <Separator className="my-4"/>
-                                <h3 className="text-lg font-semibold flex items-center gap-2 mb-2 text-muted-foreground">
-                                    Other Players
-                                </h3>
-                                <PlayerLeaderboard
-                                    players={otherPlayers}
-                                    onSetAvailability={handleSetAvailability}
-                                    isLocked={gamePhase !== 'availability'}
-                                    onEditPlayer={handleOpenPlayerDialog}
-                                    onDeletePlayer={handleDeletePlayer}
-                                    rankOffset={playersIn.length + playersWaiting.length}
-                                    hideRank={true}
-                                />
-                            </div>
-                        )}
+                        <div>
+                            <Separator className="my-4"/>
+                            <h3 className="text-lg font-semibold flex items-center gap-2 mb-2 text-muted-foreground">
+                                Other Players
+                            </h3>
+                            <PlayerLeaderboard
+                                players={otherPlayers}
+                                onSetAvailability={handleSetAvailability}
+                                isLocked={gamePhase !== 'availability'}
+                                onEditPlayer={handleOpenPlayerDialog}
+                                onDeletePlayer={handleDeletePlayer}
+                                rankOffset={playersIn.length + playersWaiting.length}
+                                hideRank={true}
+                            />
+                        </div>
                   </div>
               </CardContent>
             </Card>
