@@ -138,10 +138,10 @@ export function PlayerLeaderboard({ players, onSetAvailability, isLocked, onEdit
                         <div className="flex justify-center gap-1">
                             <Button
                                 size="icon"
-                                variant={player.status === 'in' ? 'default' : 'outline'}
+                                variant={player.status === 'in' || player.status === 'waiting' ? 'default' : 'outline'}
                                 className={cn(
                                     "h-8 w-8",
-                                    player.status === 'in' 
+                                    player.status === 'in' || player.status === 'waiting'
                                         ? 'bg-green-500 hover:bg-green-600 border-green-500 text-white' 
                                         : 'text-green-500 border-green-500 hover:bg-green-500/10 hover:text-green-600'
                                 )}
