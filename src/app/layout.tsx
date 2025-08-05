@@ -14,7 +14,7 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: 'Gridiron Guru',
+  title: 'HIRAFUS LEAGUE',
   description: 'Weekly Football Team Selections & Leaderboard',
 };
 

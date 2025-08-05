@@ -67,12 +67,22 @@ const FormIndicator = ({ result }: { result: 'W' | 'D' | 'L'}) => {
 
 export function PlayerLeaderboard({ players, onSetAvailability, isLocked, onEditPlayer, onDeletePlayer, rankOffset, hideRank = false }: PlayerLeaderboardProps) {
 
-  const getRankIcon = (rank: number) => {
+  const getRankContent = (rank: number) => {
     if (hideRank) return null;
-    if (rank === 1) return <Star className="w-5 h-5 text-yellow-400 fill-yellow-400" />;
-    if (rank === 2) return <Star className="w-5 h-5 text-slate-300 fill-slate-300" />;
-    if (rank === 3) return <Star className="w-5 h-5 text-amber-600 fill-amber-600" />;
-    return <span className="font-mono text-sm">{rank}</span>;
+
+    const rankNumber = <span className="font-mono text-sm">{rank}</span>;
+    let rankIcon = null;
+
+    if (rank === 1) rankIcon = <Star className="w-5 h-5 text-yellow-400 fill-yellow-400" />;
+    else if (rank === 2) rankIcon = <Star className="w-5 h-5 text-slate-300 fill-slate-300" />;
+    else if (rank === 3) rankIcon = <Star className="w-5 h-5 text-amber-600 fill-amber-600" />;
+    
+    return (
+        <div className="flex items-center justify-center gap-1">
+            {rankNumber}
+            {rankIcon}
+        </div>
+    );
   }
 
   return (
@@ -101,7 +111,7 @@ export function PlayerLeaderboard({ players, onSetAvailability, isLocked, onEdit
               <TableRow key={player.id} className={player.status === 'in' ? 'bg-primary/5' : ''}>
                 <TableCell className="font-medium text-center">
                   <div className="flex justify-center items-center h-full">
-                   {getRankIcon(rankOffset + index + 1)}
+                   {getRankContent(rankOffset + index + 1)}
                   </div>
                 </TableCell>
                 <TableCell>
