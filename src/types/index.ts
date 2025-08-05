@@ -13,6 +13,7 @@ export interface Player {
   draws: number;
   losses: number;
   form: Form;
+  waitingTimestamp?: number | null;
 }
 
 export interface Team {

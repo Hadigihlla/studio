@@ -28,7 +28,7 @@ import { Button } from "@/components/ui/button"
 interface PlayerDialogProps {
   isOpen: boolean
   onOpenChange: (isOpen: boolean) => void
-  onSave: (playerData: Omit<Player, 'id' | 'status' | 'matchesPlayed' | 'wins' | 'draws' | 'losses' | 'form'> & { id?: number }) => void
+  onSave: (playerData: Omit<Player, 'id' | 'status' | 'matchesPlayed' | 'wins' | 'draws' | 'losses' | 'form' | 'waitingTimestamp'> & { id?: number }) => void
   player: Player | null
 }
 

@@ -46,7 +46,12 @@ export default function Home() {
   }, [players]);
 
   const playersIn = useMemo(() => sortedPlayers.filter(p => p.status === 'in'), [sortedPlayers]);
-  const playersWaiting = useMemo(() => sortedPlayers.filter(p => p.status === 'waiting'), [sortedPlayers]);
+  const playersWaiting = useMemo(() => {
+    // Sort waiting list by timestamp, oldest first
+    return sortedPlayers
+        .filter(p => p.status === 'waiting')
+        .sort((a, b) => (a.waitingTimestamp || 0) - (b.waitingTimestamp || 0));
+    }, [sortedPlayers]);
   const otherPlayers = useMemo(() => sortedPlayers.filter(p => p.status !== 'in' && p.status !== 'waiting'), [sortedPlayers]);
 
   const handleOpenPlayerDialog = (player: Player | null) => {
@@ -54,7 +59,7 @@ export default function Home() {
     setIsPlayerDialogOpen(true);
   };
 
-  const handleSavePlayer = (playerData: Omit<Player, 'id' | 'status' | 'matchesPlayed' | 'wins' | 'draws' | 'losses' | 'form'> & { id?: number }) => {
+  const handleSavePlayer = (playerData: Omit<Player, 'id' | 'status' | 'matchesPlayed' | 'wins' | 'draws' | 'losses' | 'form' | 'waitingTimestamp'> & { id?: number }) => {
     let toastInfo: { title: string, description: string };
     if (playerData.id) { // Editing existing player
       const updatedPlayer = players.find(p => p.id === playerData.id);
@@ -75,6 +80,7 @@ export default function Home() {
         draws: 0,
         losses: 0,
         form: [],
+        waitingTimestamp: null,
       };
       setPlayers(prev => [...prev, newPlayer]);
       toastInfo = { title: "Player Added", description: `${newPlayer.name} has joined the roster.` };
@@ -111,30 +117,34 @@ export default function Home() {
         let primaryToast: { title: string, description: string, variant?: "default" | "destructive" } | null = null;
         let secondaryToast: { title: string, description: string, variant?: "default" | "destructive" } | null = null;
 
+        const updatePlayerStatus = (id: number, status: PlayerStatus) => {
+            const timestamp = status === 'waiting' ? Date.now() : null;
+            return newPlayers.map(p => p.id === id ? { ...p, status, waitingTimestamp: timestamp } : p);
+        }
+
         // Player wants to be IN
         if (newStatus === 'in') {
             if (playersInCount < MAX_PLAYERS_IN) {
-                newPlayers = newPlayers.map(p => p.id === playerId ? { ...p, status: 'in' } : p);
+                newPlayers = updatePlayerStatus(playerId, 'in');
                 primaryToast = { title: "You're In!", description: `${targetPlayer.name} is confirmed for the game.` };
             } else {
-                newPlayers = newPlayers.map(p => p.id === playerId ? { ...p, status: 'waiting' } : p);
+                newPlayers = updatePlayerStatus(playerId, 'waiting');
                 primaryToast = { title: "Waiting List", description: `The game is full. ${targetPlayer.name} has been added to the waiting list.` };
             }
         } 
         // Player wants to be OUT or UNDECIDED
         else if (newStatus === 'out' || newStatus === 'undecided') {
             const wasPlayerIn = targetPlayer.status === 'in';
-            newPlayers = newPlayers.map(p => p.id === playerId ? { ...p, status: newStatus } : p);
+            newPlayers = updatePlayerStatus(playerId, newStatus);
             
             if (wasPlayerIn) {
-                // Important: sort by points to get the highest ranked player
                 const waitingList = newPlayers
                     .filter(p => p.status === 'waiting')
-                    .sort((a,b) => b.points - a.points);
+                    .sort((a, b) => (a.waitingTimestamp || 0) - (b.waitingTimestamp || 0));
 
                 if (waitingList.length > 0) {
                     const nextPlayerInId = waitingList[0].id;
-                    newPlayers = newPlayers.map(p => p.id === nextPlayerInId ? { ...p, status: 'in' } : p);
+                    newPlayers = newPlayers.map(p => p.id === nextPlayerInId ? { ...p, status: 'in', waitingTimestamp: null } : p);
                     const promotedPlayer = newPlayers.find(p => p.id === nextPlayerInId);
                     if(promotedPlayer) {
                       secondaryToast = { title: "Player Promoted", description: `${promotedPlayer.name} has been moved from the waiting list to 'in'.`};
@@ -143,7 +153,7 @@ export default function Home() {
             }
         } else {
              // For 'waiting' status (e.g. from undecided to waiting, though UI doesn't directly support this)
-             newPlayers = newPlayers.map(p => p.id === playerId ? { ...p, status: newStatus } : p);
+             newPlayers = updatePlayerStatus(playerId, newStatus);
         }
         
         if (primaryToast) {
@@ -257,7 +267,7 @@ export default function Home() {
     setWinner(null);
     setPenalties({});
     setScores({ teamA: 0, teamB: 0 });
-    setPlayers(prev => prev.map(p => ({...p, status: 'undecided'})));
+    setPlayers(prev => prev.map(p => ({...p, status: 'undecided', waitingTimestamp: null})));
     setLastToastInfo({
         title: "New Game Started",
         description: "Player availability has been reset. Good luck!",
