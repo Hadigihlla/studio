@@ -119,7 +119,12 @@ export function PlayerLeaderboard({ players, onSetAvailability, isLocked, onEdit
                             <Button
                                 size="icon"
                                 variant={player.status === 'in' ? 'default' : 'outline'}
-                                className="h-8 w-8 bg-green-500 hover:bg-green-600 border-green-500 text-white data-[state=selected]:bg-green-600"
+                                className={cn(
+                                    "h-8 w-8",
+                                    player.status === 'in' 
+                                        ? 'bg-green-500 hover:bg-green-600 border-green-500 text-white' 
+                                        : 'text-green-500 border-green-500 hover:bg-green-500/10 hover:text-green-600'
+                                )}
                                 onClick={() => onSetAvailability(player.id, "in")}
                             >
                                 <ThumbsUp className="h-4 w-4" />
