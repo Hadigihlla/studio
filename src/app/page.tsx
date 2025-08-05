@@ -121,13 +121,17 @@ export default function Home() {
                 primaryToast = { title: "Waiting List", description: `The game is full. ${targetPlayer.name} has been added to the waiting list.` };
             }
         } 
-        // Player wants to be OUT
+        // Player wants to be OUT or UNDECIDED
         else if (newStatus === 'out' || newStatus === 'undecided') {
             const wasPlayerIn = targetPlayer.status === 'in';
             newPlayers = newPlayers.map(p => p.id === playerId ? { ...p, status: newStatus } : p);
             
             if (wasPlayerIn) {
-                const waitingList = newPlayers.filter(p => p.status === 'waiting').sort((a,b) => b.points - a.points);
+                // Important: sort by points to get the highest ranked player
+                const waitingList = newPlayers
+                    .filter(p => p.status === 'waiting')
+                    .sort((a,b) => b.points - a.points);
+
                 if (waitingList.length > 0) {
                     const nextPlayerInId = waitingList[0].id;
                     newPlayers = newPlayers.map(p => p.id === nextPlayerInId ? { ...p, status: 'in' } : p);
@@ -138,7 +142,7 @@ export default function Home() {
                 }
             }
         } else {
-             // For 'waiting' status
+             // For 'waiting' status (e.g. from undecided to waiting, though UI doesn't directly support this)
              newPlayers = newPlayers.map(p => p.id === playerId ? { ...p, status: newStatus } : p);
         }
         
@@ -148,7 +152,7 @@ export default function Home() {
         if (secondaryToast) {
             // This is a simplification; handling multiple toasts would require a queue.
             // For now, secondary toast will overwrite primary if it exists.
-             setLastToastInfo(secondaryToast);
+             setTimeout(() => setLastToastInfo(secondaryToast), 100);
         }
 
 
