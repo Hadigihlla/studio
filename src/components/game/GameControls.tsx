@@ -26,7 +26,7 @@ export function GameControls({
   setScores,
 }: GameControlsProps) {
   const handleScoreChange = (team: 'teamA' | 'teamB', value: number) => {
-    setScores({ ...scores, [team]: value });
+    setScores({ ...scores, [team]: value < 0 ? 0 : value });
   };
 
   return (
