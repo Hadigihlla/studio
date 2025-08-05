@@ -25,4 +25,6 @@ export interface Match {
     date: string;
     teams: Team;
     result: Result;
+    scoreA: number;
+    scoreB: number;
 }

@@ -2,15 +2,18 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Users, Swords, Trophy, RefreshCw } from "lucide-react";
-import type { Result } from "@/types";
 
 interface GameControlsProps {
   onDraftTeams: () => void;
-  onRecordResult: (result: Result) => void;
+  onRecordResult: () => void;
   onResetGame: () => void;
   gamePhase: "availability" | "teams" | "results";
   playersInCount: number;
+  scores: { teamA: number; teamB: number };
+  setScores: (scores: { teamA: number; teamB: number }) => void;
 }
 
 export function GameControls({
@@ -19,6 +22,8 @@ export function GameControls({
   onResetGame,
   gamePhase,
   playersInCount,
+  scores,
+  setScores,
 }: GameControlsProps) {
   return (
     <Card>
@@ -41,32 +46,35 @@ export function GameControls({
         )}
 
         {gamePhase === "teams" && (
-          <div className="space-y-2">
-            <h3 className="text-sm font-medium text-center text-muted-foreground mb-2">
-              Who Won?
-            </h3>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="teamA-score" className="text-blue-400 font-semibold">Team A Score</Label>
+                <Input
+                  id="teamA-score"
+                  type="number"
+                  value={scores.teamA}
+                  onChange={(e) => setScores({ ...scores, teamA: parseInt(e.target.value) || 0 })}
+                  className="text-center"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="teamB-score" className="text-red-400 font-semibold">Team B Score</Label>
+                <Input
+                  id="teamB-score"
+                  type="number"
+                  value={scores.teamB}
+                  onChange={(e) => setScores({ ...scores, teamB: parseInt(e.target.value) || 0 })}
+                  className="text-center"
+                />
+              </div>
+            </div>
             <Button
-              onClick={() => onRecordResult("A")}
+              onClick={onRecordResult}
               className="w-full"
-              variant="outline"
             >
-              <Trophy className="mr-2 h-4 w-4 text-blue-400" />
-              Team A Wins
-            </Button>
-            <Button
-              onClick={() => onRecordResult("B")}
-              className="w-full"
-              variant="outline"
-            >
-              <Trophy className="mr-2 h-4 w-4 text-red-400" />
-              Team B Wins
-            </Button>
-            <Button
-              onClick={() => onRecordResult("Draw")}
-              className="w-full"
-              variant="outline"
-            >
-              Draw
+              <Trophy className="mr-2 h-4 w-4" />
+              Record Final Score
             </Button>
           </div>
         )}

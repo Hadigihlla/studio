@@ -10,7 +10,6 @@ import {
 } from "@/components/ui/accordion";
 import { format } from "date-fns";
 import { Calendar, Shield, Users, Trophy } from "lucide-react";
-import { Badge } from "../ui/badge";
 
 interface MatchHistoryProps {
   matches: Match[];
@@ -41,7 +40,10 @@ export function MatchHistory({ matches }: MatchHistoryProps) {
                           'text-yellow-400'
                       }`} />
                       <span className="font-semibold">
-                        {match.result === 'Draw' ? 'Draw' : `Team ${match.result} Won`}
+                        {match.result === 'Draw' 
+                            ? `Draw (${match.scoreA} - ${match.scoreB})` 
+                            : `Team ${match.result} Won (${match.scoreA} - ${match.scoreB})`
+                        }
                       </span>
                     </div>
                     <span className="text-sm text-muted-foreground">

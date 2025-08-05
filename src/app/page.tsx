@@ -29,6 +29,7 @@ export default function Home() {
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
   const [lastToastInfo, setLastToastInfo] = useState<{ title: string, description: string, variant?: "default" | "destructive" } | null>(null);
   const [penalties, setPenalties] = useState<Record<number, Penalty>>({});
+  const [scores, setScores] = useState<{ teamA: number; teamB: number }>({ teamA: 0, teamB: 0 });
 
   const { toast } = useToast();
   
@@ -206,20 +207,24 @@ export default function Home() {
     }));
   };
 
-  const handleRecordResult = (result: Result) => {
+  const handleRecordResult = () => {
     if (!teams) return;
 
     let toastMessage = "";
-    
-    if (result === "A") {
+    let result: Result;
+
+    if (scores.teamA > scores.teamB) {
+      result = 'A';
       updatePlayerStats(teams.teamA, 'W');
       updatePlayerStats(teams.teamB, 'L');
       toastMessage = "Team A wins! +3 points for each player.";
-    } else if (result === "B") {
+    } else if (scores.teamB > scores.teamA) {
+      result = 'B';
       updatePlayerStats(teams.teamB, 'W');
       updatePlayerStats(teams.teamA, 'L');
       toastMessage = "Team B wins! +3 points for each player.";
     } else {
+      result = 'Draw';
       updatePlayerStats([...teams.teamA, ...teams.teamB], 'D');
       toastMessage = "It's a draw! +2 points for all players.";
     }
@@ -229,6 +234,8 @@ export default function Home() {
       date: new Date().toISOString(),
       teams: teams,
       result: result,
+      scoreA: scores.teamA,
+      scoreB: scores.teamB,
     };
     setMatchHistory(prev => [newMatch, ...prev]);
     
@@ -245,6 +252,7 @@ export default function Home() {
     setGamePhase("availability");
     setWinner(null);
     setPenalties({});
+    setScores({ teamA: 0, teamB: 0 });
     setPlayers(prev => prev.map(p => ({...p, status: 'undecided'})));
     setLastToastInfo({
         title: "New Game Started",
@@ -340,6 +348,8 @@ export default function Home() {
               onResetGame={handleResetGame}
               gamePhase={gamePhase}
               playersInCount={playersIn.length}
+              scores={scores}
+              setScores={setScores}
             />
 
             {gamePhase !== 'availability' && teams && (
