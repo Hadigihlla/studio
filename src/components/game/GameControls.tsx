@@ -2,9 +2,9 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Users, Swords, Trophy, RefreshCw } from "lucide-react";
+import { ScoreInput } from "./ScoreInput";
 
 interface GameControlsProps {
   onDraftTeams: () => void;
@@ -25,6 +25,10 @@ export function GameControls({
   scores,
   setScores,
 }: GameControlsProps) {
+  const handleScoreChange = (team: 'teamA' | 'teamB', value: number) => {
+    setScores({ ...scores, [team]: value });
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -50,24 +54,16 @@ export function GameControls({
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="teamA-score" className="text-blue-400 font-semibold">Team A Score</Label>
-                <Input
-                  id="teamA-score"
-                  type="number"
-                  min="0"
+                <ScoreInput
                   value={scores.teamA}
-                  onChange={(e) => setScores({ ...scores, teamA: Math.max(0, parseInt(e.target.value) || 0) })}
-                  className="text-center"
+                  onChange={(value) => handleScoreChange('teamA', value)}
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="teamB-score" className="text-red-400 font-semibold">Team B Score</Label>
-                <Input
-                  id="teamB-score"
-                  type="number"
-                  min="0"
+                <ScoreInput
                   value={scores.teamB}
-                  onChange={(e) => setScores({ ...scores, teamB: Math.max(0, parseInt(e.target.value) || 0) })}
-                  className="text-center"
+                  onChange={(value) => handleScoreChange('teamB', value)}
                 />
               </div>
             </div>

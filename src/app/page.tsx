@@ -204,7 +204,13 @@ export default function Home() {
     playersToUpdate: Player[],
     result: 'W' | 'D' | 'L'
   ) => {
-    const playerIds = new Set(playersToUpdate.map(p => p.id));
+    // Exclude no-show players from getting points for W/D
+    const eligiblePlayers = result === 'L' 
+        ? playersToUpdate
+        : playersToUpdate.filter(p => penalties[p.id] !== 'no-show');
+
+    const playerIds = new Set(eligiblePlayers.map(p => p.id));
+    
     setPlayers(prev => prev.map(p => {
       if (playerIds.has(p.id)) {
         return {
