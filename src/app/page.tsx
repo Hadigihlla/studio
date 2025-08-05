@@ -74,9 +74,11 @@ export default function Home() {
   };
 
   const handleDeletePlayer = (playerId: number) => {
-    const playerName = players.find(p => p.id === playerId)?.name;
+    const player = players.find(p => p.id === playerId);
+    if(player) {
+      toast({ variant: 'destructive', title: "Player Removed", description: `${player.name} has been removed.` });
+    }
     setPlayers(prev => prev.filter(p => p.id !== playerId));
-    toast({ variant: 'destructive', title: "Player Removed", description: `${playerName} has been removed.` });
   };
 
 
@@ -121,7 +123,10 @@ export default function Home() {
                 if (waitingList.length > 0) {
                     const nextPlayerInId = waitingList[0].id;
                     newPlayers = newPlayers.map(p => p.id === nextPlayerInId ? { ...p, status: 'in' } : p);
-                    toast({ title: "Player Promoted", description: `${waitingList[0].name} has been moved from the waiting list to 'in'.`});
+                    const promotedPlayer = newPlayers.find(p => p.id === nextPlayerInId);
+                    if(promotedPlayer) {
+                      toast({ title: "Player Promoted", description: `${promotedPlayer.name} has been moved from the waiting list to 'in'.`});
+                    }
                 }
             }
         } else {
@@ -188,7 +193,6 @@ export default function Home() {
     if (!teams) return;
 
     let toastMessage = "";
-    setWinner(result);
     
     if (result === "A") {
       updatePlayerStats(teams.teamA, 'W');
@@ -212,6 +216,7 @@ export default function Home() {
     setMatchHistory(prev => [newMatch, ...prev]);
     
     setGamePhase("results");
+    setWinner(result);
     toast({
       title: "Game Over!",
       description: toastMessage,
