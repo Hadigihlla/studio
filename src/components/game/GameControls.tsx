@@ -53,8 +53,9 @@ export function GameControls({
                 <Input
                   id="teamA-score"
                   type="number"
+                  min="0"
                   value={scores.teamA}
-                  onChange={(e) => setScores({ ...scores, teamA: parseInt(e.target.value) || 0 })}
+                  onChange={(e) => setScores({ ...scores, teamA: Math.max(0, parseInt(e.target.value) || 0) })}
                   className="text-center"
                 />
               </div>
@@ -63,8 +64,9 @@ export function GameControls({
                 <Input
                   id="teamB-score"
                   type="number"
+                  min="0"
                   value={scores.teamB}
-                  onChange={(e) => setScores({ ...scores, teamB: parseInt(e.target.value) || 0 })}
+                  onChange={(e) => setScores({ ...scores, teamB: Math.max(0, parseInt(e.target.value) || 0) })}
                   className="text-center"
                 />
               </div>
