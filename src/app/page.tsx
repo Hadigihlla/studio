@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import type { Player, PlayerStatus, Team } from "@/types";
+import { useState, useMemo, useEffect } from "react";
+import type { Player, PlayerStatus, Team, Match, Result } from "@/types";
 import { initialPlayers } from "@/lib/initial-players";
 import { Header } from "@/components/game/Header";
 import { UpcomingGame } from "@/components/game/UpcomingGame";
@@ -11,13 +11,20 @@ import { TeamDisplay } from "@/components/game/TeamDisplay";
 import { Confetti } from "@/components/game/Confetti";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Award } from "lucide-react";
+import { Award, Plus } from "lucide-react";
+import { MatchHistory } from "@/components/game/MatchHistory";
+import { PlayerDialog } from "@/components/game/PlayerDialog";
+import { Button } from "@/components/ui/button";
 
 export default function Home() {
   const [players, setPlayers] = useState<Player[]>(initialPlayers);
   const [teams, setTeams] = useState<Team | null>(null);
   const [gamePhase, setGamePhase] = useState<"availability" | "teams" | "results">("availability");
-  const [winner, setWinner] = useState<"A" | "B" | "Draw" | null>(null);
+  const [winner, setWinner] = useState<Result | null>(null);
+  const [matchHistory, setMatchHistory] = useState<Match[]>([]);
+  const [isPlayerDialogOpen, setIsPlayerDialogOpen] = useState(false);
+  const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
+
   const { toast } = useToast();
 
   const sortedPlayers = useMemo(() => {
@@ -27,6 +34,40 @@ export default function Home() {
   const playersIn = useMemo(() => {
     return players.filter((p) => p.status === "in");
   }, [players]);
+  
+  const handleOpenPlayerDialog = (player: Player | null) => {
+    setEditingPlayer(player);
+    setIsPlayerDialogOpen(true);
+  };
+
+  const handleSavePlayer = (playerData: Omit<Player, 'id' | 'status' | 'matchesPlayed' | 'wins' | 'draws' | 'losses' | 'form'> & { id?: number }) => {
+    if (playerData.id) { // Editing existing player
+      setPlayers(prev => prev.map(p => p.id === playerData.id ? { ...p, name: playerData.name, points: playerData.points } : p));
+      toast({ title: "Player Updated", description: `${playerData.name}'s details have been saved.` });
+    } else { // Adding new player
+      const newPlayer: Player = {
+        id: Date.now(),
+        name: playerData.name,
+        points: playerData.points,
+        status: 'undecided',
+        matchesPlayed: 0,
+        wins: 0,
+        draws: 0,
+        losses: 0,
+        form: [],
+      };
+      setPlayers(prev => [...prev, newPlayer]);
+      toast({ title: "Player Added", description: `${newPlayer.name} has joined the roster.` });
+    }
+    setIsPlayerDialogOpen(false);
+  };
+
+  const handleDeletePlayer = (playerId: number) => {
+    const playerName = players.find(p => p.id === playerId)?.name;
+    setPlayers(prev => prev.filter(p => p.id !== playerId));
+    toast({ variant: 'destructive', title: "Player Removed", description: `${playerName} has been removed.` });
+  };
+
 
   const handleSetAvailability = (playerId: number, status: PlayerStatus) => {
     if (gamePhase !== 'availability') {
@@ -72,56 +113,58 @@ export default function Home() {
     });
   };
 
-  const updatePlayerPoints = (
-    playerList: Player[],
-    team: Player[],
-    points: number
+  const updatePlayerStats = (
+    playersToUpdate: Player[],
+    result: 'W' | 'D' | 'L'
   ) => {
-    const teamIds = new Set(team.map((p) => p.id));
-    return playerList.map((p) =>
-      teamIds.has(p.id) ? { ...p, points: p.points + points } : p
-    );
+    const playerIds = new Set(playersToUpdate.map(p => p.id));
+    setPlayers(prev => prev.map(p => {
+      if (playerIds.has(p.id)) {
+        return {
+          ...p,
+          points: p.points + (result === 'W' ? 3 : result === 'D' ? 2 : 0),
+          matchesPlayed: p.matchesPlayed + 1,
+          wins: p.wins + (result === 'W' ? 1 : 0),
+          draws: p.draws + (result === 'D' ? 1 : 0),
+          losses: p.losses + (result === 'L' ? 1 : 0),
+          form: [result, ...p.form].slice(0, 5),
+        }
+      }
+      return p;
+    }));
   };
 
-  const handleRecordResult = (result: "A" | "B" | "Draw") => {
+  const handleRecordResult = (result: Result) => {
     if (!teams) return;
 
-    let updatedPlayers = [...players];
     let toastMessage = "";
-
+    setWinner(result);
+    
     if (result === "A") {
-      updatedPlayers = updatePlayerPoints(updatedPlayers, teams.teamA, 3);
+      updatePlayerStats(teams.teamA, 'W');
+      updatePlayerStats(teams.teamB, 'L');
       toastMessage = "Team A wins! +3 points for each player.";
-      setWinner("A");
     } else if (result === "B") {
-      updatedPlayers = updatePlayerPoints(updatedPlayers, teams.teamB, 3);
+      updatePlayerStats(teams.teamB, 'W');
+      updatePlayerStats(teams.teamA, 'L');
       toastMessage = "Team B wins! +3 points for each player.";
-      setWinner("B");
     } else {
-      updatedPlayers = updatePlayerPoints(updatedPlayers, teams.teamA, 2);
-      updatedPlayers = updatePlayerPoints(updatedPlayers, teams.teamB, 2);
+      updatePlayerStats([...teams.teamA, ...teams.teamB], 'D');
       toastMessage = "It's a draw! +2 points for all players.";
-      setWinner("Draw");
     }
 
-    setPlayers(updatedPlayers);
+    const newMatch: Match = {
+      id: Date.now(),
+      date: new Date().toISOString(),
+      teams: teams,
+      result: result,
+    };
+    setMatchHistory(prev => [newMatch, ...prev]);
+    
     setGamePhase("results");
     toast({
       title: "Game Over!",
       description: toastMessage,
-    });
-  };
-
-  const handlePenalty = (playerId: number, penalty: "late" | "noshow") => {
-    const pointsToDeduct = penalty === 'late' ? 3 : 2;
-    setPlayers(prevPlayers => prevPlayers.map(p => 
-      p.id === playerId ? {...p, points: p.points - pointsToDeduct} : p
-    ));
-    const playerName = players.find(p => p.id === playerId)?.name;
-    toast({
-        variant: "destructive",
-        title: "Penalty Applied",
-        description: `${playerName} has been deducted ${pointsToDeduct} points for being a ${penalty === 'late' ? 'late arrival' : 'no-show'}.`,
     });
   };
   
@@ -137,49 +180,72 @@ export default function Home() {
   };
 
   return (
-    <main className="container mx-auto p-4 md:p-8 relative">
-      {winner && <Confetti />}
-      <Header />
+    <>
+      <main className="container mx-auto p-4 md:p-8 relative">
+        {winner && <Confetti />}
+        <Header />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
-           <PlayerLeaderboard
-            players={sortedPlayers}
-            onSetAvailability={handleSetAvailability}
-            isLocked={gamePhase !== 'availability'}
-          />
-        </div>
-        
-        <div className="space-y-6">
-          <UpcomingGame />
-          <GameControls 
-            onDraftTeams={handleDraftTeams}
-            onRecordResult={handleRecordResult}
-            onResetGame={handleResetGame}
-            gamePhase={gamePhase}
-            playersInCount={playersIn.length}
-          />
-
-          {gamePhase !== 'availability' && teams && (
-            <TeamDisplay teams={teams} onApplyPenalty={handlePenalty} winner={winner} />
-          )}
-
-          {gamePhase === 'results' && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-6">
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2"><Award className="text-primary"/>Game Result</CardTitle>
+              <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle className="flex items-center gap-2 font-headline">
+                      Player Roster
+                  </CardTitle>
+                  <Button onClick={() => handleOpenPlayerDialog(null)} size="sm">
+                      <Plus className="mr-2" /> Add Player
+                  </Button>
               </CardHeader>
               <CardContent>
-                <p className="text-lg font-semibold">
-                  {winner === 'Draw' && 'The match was a draw.'}
-                  {winner === 'A' && 'Team A is the winner!'}
-                  {winner === 'B' && 'Team B is the winner!'}
-                </p>
+                  <PlayerLeaderboard
+                      players={sortedPlayers}
+                      onSetAvailability={handleSetAvailability}
+                      isLocked={gamePhase !== 'availability'}
+                      onEditPlayer={handleOpenPlayerDialog}
+                      onDeletePlayer={handleDeletePlayer}
+                  />
               </CardContent>
             </Card>
-          )}
+            <MatchHistory matches={matchHistory} />
+          </div>
+          
+          <div className="space-y-6">
+            <UpcomingGame />
+            <GameControls 
+              onDraftTeams={handleDraftTeams}
+              onRecordResult={handleRecordResult}
+              onResetGame={handleResetGame}
+              gamePhase={gamePhase}
+              playersInCount={playersIn.length}
+            />
+
+            {gamePhase !== 'availability' && teams && (
+              <TeamDisplay teams={teams} winner={winner} />
+            )}
+
+            {gamePhase === 'results' && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2"><Award className="text-primary"/>Game Result</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-lg font-semibold">
+                    {winner === 'Draw' && 'The match was a draw.'}
+                    {winner === 'A' && 'Team A is the winner!'}
+                    {winner === 'B' && 'Team B is the winner!'}
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+          </div>
         </div>
-      </div>
-    </main>
+      </main>
+      <PlayerDialog
+        isOpen={isPlayerDialogOpen}
+        onOpenChange={setIsPlayerDialogOpen}
+        onSave={handleSavePlayer}
+        player={editingPlayer}
+      />
+    </>
   );
 }

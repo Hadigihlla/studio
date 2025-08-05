@@ -3,10 +3,11 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Swords, Trophy, RefreshCw } from "lucide-react";
+import type { Result } from "@/types";
 
 interface GameControlsProps {
   onDraftTeams: () => void;
-  onRecordResult: (result: "A" | "B" | "Draw") => void;
+  onRecordResult: (result: Result) => void;
   onResetGame: () => void;
   gamePhase: "availability" | "teams" | "results";
   playersInCount: number;

@@ -1,4 +1,5 @@
 import { Trophy } from 'lucide-react';
+import { format } from 'date-fns';
 
 export function Header() {
   return (
@@ -9,7 +10,10 @@ export function Header() {
           Gridiron Guru
         </h1>
       </div>
-      <p className="mt-2 text-center text-base md:text-lg text-muted-foreground">
+       <p className="mt-4 text-center text-lg md:text-xl font-semibold text-muted-foreground">
+        {format(new Date(), "eeee, MMMM do, yyyy")}
+      </p>
+      <p className="mt-1 text-center text-base md:text-lg text-muted-foreground">
         Weekly Football Team Selections & Leaderboard
       </p>
     </header>

@@ -1,29 +1,25 @@
 "use client";
 
-import type { Player, Team } from "@/types";
+import type { Player, Team, Result } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import { Clock, UserX, Shield, Trophy } from "lucide-react";
+import { Shield, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface TeamDisplayProps {
   teams: Team;
-  onApplyPenalty: (playerId: number, penalty: "late" | "noshow") => void;
-  winner: "A" | "B" | "Draw" | null;
+  winner: Result | null;
 }
 
 const TeamCard = ({
   team,
   title,
   titleColor,
-  onApplyPenalty,
   isWinner,
 }: {
   team: Player[];
   title: string;
   titleColor: string;
-  onApplyPenalty: (playerId: number, penalty: "late" | "noshow") => void;
   isWinner: boolean;
 }) => (
   <Card className={cn(isWinner && "border-accent ring-2 ring-accent bg-accent/10", "transition-all duration-300")}>
@@ -46,23 +42,8 @@ const TeamCard = ({
             </Avatar>
             <span className="font-medium">{player.name}</span>
           </div>
-          <div className="flex gap-1">
-            <Button
-              size="icon"
-              variant="outline"
-              className="h-7 w-7"
-              onClick={() => onApplyPenalty(player.id, "late")}
-            >
-              <Clock className="h-4 w-4" />
-            </Button>
-            <Button
-              size="icon"
-              variant="outline"
-              className="h-7 w-7"
-              onClick={() => onApplyPenalty(player.id, "noshow")}
-            >
-              <UserX className="h-4 w-4" />
-            </Button>
+          <div className="font-mono text-sm text-muted-foreground">
+            {player.points} pts
           </div>
         </div>
       ))}
@@ -70,21 +51,19 @@ const TeamCard = ({
   </Card>
 );
 
-export function TeamDisplay({ teams, onApplyPenalty, winner }: TeamDisplayProps) {
+export function TeamDisplay({ teams, winner }: TeamDisplayProps) {
   return (
     <div className="space-y-6">
       <TeamCard
         team={teams.teamA}
         title="Team A"
         titleColor="text-blue-400"
-        onApplyPenalty={onApplyPenalty}
         isWinner={winner === "A" || winner === "Draw"}
       />
       <TeamCard
         team={teams.teamB}
         title="Team B"
         titleColor="text-red-400"
-        onApplyPenalty={onApplyPenalty}
         isWinner={winner === "B" || winner === "Draw"}
       />
     </div>
