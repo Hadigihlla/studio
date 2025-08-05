@@ -30,9 +30,17 @@ export const Confetti: React.FC = () => {
       opacity: 1,
     }));
     setParticles(newParticles);
+
+    const timer = setTimeout(() => {
+        setParticles([]);
+    }, 5000);
+
+    return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
+    if (particles.length === 0) return;
+
     const animationFrame = requestAnimationFrame(() => {
       setParticles(prevParticles => {
         return prevParticles.map(p => {
