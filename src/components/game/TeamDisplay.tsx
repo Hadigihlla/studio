@@ -1,14 +1,89 @@
 "use client";
 
-import type { Player, Team, Result } from "@/types";
+import type { Player, Team, Result, Penalty } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Shield, Trophy } from "lucide-react";
+import { Shield, Trophy, Clock, UserX } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+
 
 interface TeamDisplayProps {
   teams: Team;
   winner: Result | null;
+  penalties: Record<number, Penalty>;
+  onSetPenalty: (playerId: number, penalty: Penalty) => void;
+  isLocked: boolean;
+}
+
+const PenaltyIcons = ({ 
+  playerId, 
+  currentPenalty, 
+  onSetPenalty,
+  isLocked 
+} : {
+  playerId: number,
+  currentPenalty: Penalty,
+  onSetPenalty: (playerId: number, penalty: Penalty) => void,
+  isLocked: boolean
+}) => {
+  if (isLocked) {
+    return (
+      <div className="flex gap-1 items-center">
+        {currentPenalty === 'late' && <Clock className="w-4 h-4 text-orange-400" />}
+        {currentPenalty === 'no-show' && <UserX className="w-4 h-4 text-red-500" />}
+      </div>
+    );
+  }
+
+  return (
+    <TooltipProvider>
+      <div className="flex gap-1">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              size="icon"
+              variant="ghost"
+              className={cn(
+                "h-6 w-6 text-muted-foreground hover:text-orange-400",
+                currentPenalty === 'late' && 'text-orange-400 bg-orange-400/10'
+              )}
+              onClick={() => onSetPenalty(playerId, 'late')}
+            >
+              <Clock className="w-4 h-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Mark as Late</p>
+          </TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              size="icon"
+              variant="ghost"
+              className={cn(
+                "h-6 w-6 text-muted-foreground hover:text-red-500",
+                currentPenalty === 'no-show' && 'text-red-500 bg-red-500/10'
+              )}
+              onClick={() => onSetPenalty(playerId, 'no-show')}
+            >
+              <UserX className="w-4 h-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Mark as No-Show</p>
+          </TooltipContent>
+        </Tooltip>
+      </div>
+    </TooltipProvider>
+  )
 }
 
 const TeamCard = ({
@@ -16,11 +91,17 @@ const TeamCard = ({
   title,
   titleColor,
   isWinner,
+  penalties,
+  onSetPenalty,
+  isLocked,
 }: {
   team: Player[];
   title: string;
   titleColor: string;
   isWinner: boolean;
+  penalties: Record<number, Penalty>;
+  onSetPenalty: (playerId: number, penalty: Penalty) => void;
+  isLocked: boolean;
 }) => (
   <Card className={cn(isWinner && "border-accent ring-2 ring-accent bg-accent/10", "transition-all duration-300")}>
     <CardHeader>
@@ -30,7 +111,7 @@ const TeamCard = ({
         {isWinner && <Trophy className="w-6 h-6 text-accent" />}
       </CardTitle>
     </CardHeader>
-    <CardContent className="space-y-3">
+    <CardContent className="space-y-2">
       {team.map((player) => (
         <div
           key={player.id}
@@ -42,8 +123,16 @@ const TeamCard = ({
             </Avatar>
             <span className="font-medium">{player.name}</span>
           </div>
-          <div className="font-mono text-sm text-muted-foreground">
-            {player.points} pts
+          <div className="flex items-center gap-2">
+            <PenaltyIcons 
+              playerId={player.id}
+              currentPenalty={penalties[player.id]}
+              onSetPenalty={onSetPenalty}
+              isLocked={isLocked}
+            />
+            <div className="font-mono text-sm text-muted-foreground w-14 text-right">
+              {player.points} pts
+            </div>
           </div>
         </div>
       ))}
@@ -51,7 +140,7 @@ const TeamCard = ({
   </Card>
 );
 
-export function TeamDisplay({ teams, winner }: TeamDisplayProps) {
+export function TeamDisplay({ teams, winner, penalties, onSetPenalty, isLocked }: TeamDisplayProps) {
   return (
     <div className="space-y-6">
       <TeamCard
@@ -59,12 +148,18 @@ export function TeamDisplay({ teams, winner }: TeamDisplayProps) {
         title="Team A"
         titleColor="text-blue-400"
         isWinner={winner === "A" || winner === "Draw"}
+        penalties={penalties}
+        onSetPenalty={onSetPenalty}
+        isLocked={isLocked}
       />
       <TeamCard
         team={teams.teamB}
         title="Team B"
         titleColor="text-red-400"
         isWinner={winner === "B" || winner === "Draw"}
+        penalties={penalties}
+        onSetPenalty={onSetPenalty}
+        isLocked={isLocked}
       />
     </div>
   );

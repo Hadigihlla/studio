@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import type { Player, PlayerStatus, Team, Match, Result } from "@/types";
+import type { Player, PlayerStatus, Team, Match, Result, Penalty } from "@/types";
 import { initialPlayers } from "@/lib/initial-players";
 import { Header } from "@/components/game/Header";
 import { UpcomingGame } from "@/components/game/UpcomingGame";
@@ -27,7 +27,8 @@ export default function Home() {
   const [matchHistory, setMatchHistory] = useState<Match[]>([]);
   const [isPlayerDialogOpen, setIsPlayerDialogOpen] = useState(false);
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
-  const [lastToastInfo, setLastToastInfo] = useState<{ title: string, description: string } | null>(null);
+  const [lastToastInfo, setLastToastInfo] = useState<{ title: string, description: string, variant?: "default" | "destructive" } | null>(null);
+  const [penalties, setPenalties] = useState<Record<number, Penalty>>({});
 
   const { toast } = useToast();
   
@@ -106,8 +107,8 @@ export default function Home() {
         if (!targetPlayer) return currentPlayers;
 
         let newPlayers = [...currentPlayers];
-        let primaryToast: { title: string, description: string } | null = null;
-        let secondaryToast: { title: string, description: string } | null = null;
+        let primaryToast: { title: string, description: string, variant?: "default" | "destructive" } | null = null;
+        let secondaryToast: { title: string, description: string, variant?: "default" | "destructive" } | null = null;
 
         // Player wants to be IN
         if (newStatus === 'in') {
@@ -136,7 +137,7 @@ export default function Home() {
                 }
             }
         } else {
-             // For 'undecided' or other statuses
+             // For 'waiting' status
              newPlayers = newPlayers.map(p => p.id === playerId ? { ...p, status: newStatus } : p);
         }
         
@@ -243,11 +244,19 @@ export default function Home() {
     setTeams(null);
     setGamePhase("availability");
     setWinner(null);
+    setPenalties({});
     setPlayers(prev => prev.map(p => ({...p, status: 'undecided'})));
     setLastToastInfo({
         title: "New Game Started",
         description: "Player availability has been reset. Good luck!",
     });
+  };
+  
+  const handleSetPenalty = (playerId: number, penalty: Penalty) => {
+    setPenalties(prev => ({
+      ...prev,
+      [playerId]: prev[playerId] === penalty ? null : penalty,
+    }));
   };
 
   return (
@@ -334,7 +343,13 @@ export default function Home() {
             />
 
             {gamePhase !== 'availability' && teams && (
-              <TeamDisplay teams={teams} winner={winner} />
+              <TeamDisplay 
+                teams={teams} 
+                winner={winner} 
+                penalties={penalties}
+                onSetPenalty={handleSetPenalty}
+                isLocked={gamePhase === 'results'}
+              />
             )}
 
             {gamePhase === 'results' && (
