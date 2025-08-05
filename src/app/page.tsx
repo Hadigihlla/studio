@@ -272,6 +272,7 @@ export default function Home() {
       result: result,
       scoreA: scores.teamA,
       scoreB: scores.teamB,
+      penalties: penalties,
     };
     setMatchHistory(prev => [newMatch, ...prev]);
     

@@ -1,6 +1,6 @@
 "use client";
 
-import type { Match } from "@/types";
+import type { Match, Player } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Accordion,
@@ -9,11 +9,22 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { format } from "date-fns";
-import { Calendar, Shield, Users, Trophy } from "lucide-react";
+import { Calendar, Shield, Users, Trophy, Clock, UserX } from "lucide-react";
 
 interface MatchHistoryProps {
   matches: Match[];
 }
+
+const PlayerListItem = ({ player, penalty }: { player: Player, penalty: 'late' | 'no-show' | undefined }) => (
+    <li className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+            <Users className="w-4 h-4" />
+            {player.name}
+        </div>
+        {penalty === 'late' && <Clock className="w-4 h-4 text-orange-400" />}
+        {penalty === 'no-show' && <UserX className="w-4 h-4 text-red-500" />}
+    </li>
+);
 
 export function MatchHistory({ matches }: MatchHistoryProps) {
   return (
@@ -56,13 +67,13 @@ export function MatchHistory({ matches }: MatchHistoryProps) {
                     <div>
                       <h4 className="font-semibold flex items-center gap-2 mb-2 text-blue-400"><Shield/>Team A</h4>
                       <ul className="space-y-1 text-sm text-muted-foreground">
-                        {match.teams.teamA.map(p => <li key={p.id} className="flex items-center gap-2"><Users className="w-4 h-4" />{p.name}</li>)}
+                        {match.teams.teamA.map(p => <PlayerListItem key={p.id} player={p} penalty={match.penalties?.[p.id]} />)}
                       </ul>
                     </div>
                     <div>
                         <h4 className="font-semibold flex items-center gap-2 mb-2 text-red-400"><Shield/>Team B</h4>
                       <ul className="space-y-1 text-sm text-muted-foreground">
-                        {match.teams.teamB.map(p => <li key={p.id} className="flex items-center gap-2"><Users className="w-4 h-4" />{p.name}</li>)}
+                        {match.teams.teamB.map(p => <PlayerListItem key={p.id} player={p} penalty={match.penalties?.[p.id]} />)}
                       </ul>
                     </div>
                   </div>

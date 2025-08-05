@@ -28,6 +28,7 @@ export interface Match {
     result: Result;
     scoreA: number;
     scoreB: number;
+    penalties: Record<number, Penalty>;
 }
 
     
