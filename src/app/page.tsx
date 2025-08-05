@@ -277,7 +277,7 @@ export default function Home() {
   const handleSetPenalty = (playerId: number, penalty: Penalty) => {
     setPenalties(prev => ({
       ...prev,
-      [playerId]: prev[playerId] === penalty ? null : penalty,
+      [playerId]: prev[playerId] === penalty ? undefined : penalty,
     }));
   };
 
@@ -402,3 +402,5 @@ export default function Home() {
     </>
   );
 }
+
+    

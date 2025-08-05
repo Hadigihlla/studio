@@ -1,7 +1,7 @@
 export type PlayerStatus = "in" | "out" | "undecided" | "waiting";
 export type Result = "A" | "B" | "Draw";
 export type Form = ('W' | 'D' | 'L')[];
-export type Penalty = "late" | "no-show" | null;
+export type Penalty = "late" | "no-show" | undefined;
 
 export interface Player {
   id: number;
@@ -29,3 +29,5 @@ export interface Match {
     scoreA: number;
     scoreB: number;
 }
+
+    

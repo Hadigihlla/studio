@@ -164,3 +164,5 @@ export function TeamDisplay({ teams, winner, penalties, onSetPenalty, isLocked }
     </div>
   );
 }
+
+    
