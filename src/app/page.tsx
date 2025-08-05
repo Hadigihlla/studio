@@ -11,10 +11,11 @@ import { TeamDisplay } from "@/components/game/TeamDisplay";
 import { Confetti } from "@/components/game/Confetti";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Award, Plus } from "lucide-react";
+import { Award, Plus, Users, Clock } from "lucide-react";
 import { MatchHistory } from "@/components/game/MatchHistory";
 import { PlayerDialog } from "@/components/game/PlayerDialog";
 import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 
 const MAX_PLAYERS_IN = 14;
 
@@ -26,37 +27,40 @@ export default function Home() {
   const [matchHistory, setMatchHistory] = useState<Match[]>([]);
   const [isPlayerDialogOpen, setIsPlayerDialogOpen] = useState(false);
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
+  const [lastToastInfo, setLastToastInfo] = useState<{ title: string, description: string } | null>(null);
 
   const { toast } = useToast();
+  
+  useEffect(() => {
+    if(lastToastInfo) {
+      toast(lastToastInfo);
+      setLastToastInfo(null); // Reset after showing
+    }
+  }, [lastToastInfo, toast]);
 
   const sortedPlayers = useMemo(() => {
-    // Sort by status first to group them, then by points
-    const statusOrder: PlayerStatus[] = ["in", "waiting", "undecided", "out"];
-    return [...players].sort((a, b) => {
-        const statusA = statusOrder.indexOf(a.status);
-        const statusB = statusOrder.indexOf(b.status);
-        if (statusA !== statusB) {
-            return statusA - statusB;
-        }
-        return b.points - a.points;
-    });
+    // Sort by points for all lists
+    return [...players].sort((a, b) => b.points - a.points);
   }, [players]);
 
-  const playersIn = useMemo(() => {
-    return players.filter((p) => p.status === "in");
-  }, [players]);
-  
+  const playersIn = useMemo(() => sortedPlayers.filter(p => p.status === 'in'), [sortedPlayers]);
+  const playersWaiting = useMemo(() => sortedPlayers.filter(p => p.status === 'waiting'), [sortedPlayers]);
+  const otherPlayers = useMemo(() => sortedPlayers.filter(p => p.status !== 'in' && p.status !== 'waiting'), [sortedPlayers]);
+
   const handleOpenPlayerDialog = (player: Player | null) => {
     setEditingPlayer(player);
     setIsPlayerDialogOpen(true);
   };
 
   const handleSavePlayer = (playerData: Omit<Player, 'id' | 'status' | 'matchesPlayed' | 'wins' | 'draws' | 'losses' | 'form'> & { id?: number }) => {
+    let toastInfo: { title: string, description: string };
     if (playerData.id) { // Editing existing player
       const updatedPlayer = players.find(p => p.id === playerData.id);
       if (updatedPlayer) {
           setPlayers(prev => prev.map(p => p.id === playerData.id ? { ...p, name: playerData.name, points: playerData.points } : p));
-          toast({ title: "Player Updated", description: `${playerData.name}'s details have been saved.` });
+          toastInfo = { title: "Player Updated", description: `${playerData.name}'s details have been saved.` };
+      } else {
+        return; // Should not happen
       }
     } else { // Adding new player
       const newPlayer: Player = {
@@ -71,15 +75,16 @@ export default function Home() {
         form: [],
       };
       setPlayers(prev => [...prev, newPlayer]);
-      toast({ title: "Player Added", description: `${newPlayer.name} has joined the roster.` });
+      toastInfo = { title: "Player Added", description: `${newPlayer.name} has joined the roster.` };
     }
+    setLastToastInfo(toastInfo);
     setIsPlayerDialogOpen(false);
   };
 
   const handleDeletePlayer = (playerId: number) => {
     const player = players.find(p => p.id === playerId);
     if(player) {
-      toast({ variant: 'destructive', title: "Player Removed", description: `${player.name} has been removed.` });
+      setLastToastInfo({ variant: 'destructive', title: "Player Removed", description: `${player.name} has been removed.` });
     }
     setPlayers(prev => prev.filter(p => p.id !== playerId));
   };
@@ -87,7 +92,7 @@ export default function Home() {
 
   const handleSetAvailability = (playerId: number, newStatus: PlayerStatus) => {
     if (gamePhase !== 'availability') {
-        toast({
+        setLastToastInfo({
             variant: "destructive",
             title: "Action Locked",
             description: "Cannot change availability after teams are drafted.",
@@ -101,35 +106,32 @@ export default function Home() {
         if (!targetPlayer) return currentPlayers;
 
         let newPlayers = [...currentPlayers];
-        let toastInfo: { title: string, description: string } | null = null;
-        
+        let primaryToast: { title: string, description: string } | null = null;
+        let secondaryToast: { title: string, description: string } | null = null;
+
         // Player wants to be IN
         if (newStatus === 'in') {
             if (playersInCount < MAX_PLAYERS_IN) {
-                // There's space, set status to 'in'
                 newPlayers = newPlayers.map(p => p.id === playerId ? { ...p, status: 'in' } : p);
-                toastInfo = { title: "You're In!", description: `${targetPlayer.name} is confirmed for the game.` };
+                primaryToast = { title: "You're In!", description: `${targetPlayer.name} is confirmed for the game.` };
             } else {
-                // No space, add to waiting list
                 newPlayers = newPlayers.map(p => p.id === playerId ? { ...p, status: 'waiting' } : p);
-                toastInfo = { title: "Waiting List", description: `The game is full. ${targetPlayer.name} has been added to the waiting list.` };
+                primaryToast = { title: "Waiting List", description: `The game is full. ${targetPlayer.name} has been added to the waiting list.` };
             }
         } 
         // Player wants to be OUT
-        else if (newStatus === 'out') {
+        else if (newStatus === 'out' || newStatus === 'undecided') {
             const wasPlayerIn = targetPlayer.status === 'in';
-            newPlayers = newPlayers.map(p => p.id === playerId ? { ...p, status: 'out' } : p);
+            newPlayers = newPlayers.map(p => p.id === playerId ? { ...p, status: newStatus } : p);
             
-            // If a player who was 'in' drops out, check the waiting list
             if (wasPlayerIn) {
-                // Find the first player on the waiting list (can be sorted by points or another metric)
                 const waitingList = newPlayers.filter(p => p.status === 'waiting').sort((a,b) => b.points - a.points);
                 if (waitingList.length > 0) {
                     const nextPlayerInId = waitingList[0].id;
                     newPlayers = newPlayers.map(p => p.id === nextPlayerInId ? { ...p, status: 'in' } : p);
                     const promotedPlayer = newPlayers.find(p => p.id === nextPlayerInId);
                     if(promotedPlayer) {
-                      toast({ title: "Player Promoted", description: `${promotedPlayer.name} has been moved from the waiting list to 'in'.`});
+                      secondaryToast = { title: "Player Promoted", description: `${promotedPlayer.name} has been moved from the waiting list to 'in'.`};
                     }
                 }
             }
@@ -138,9 +140,15 @@ export default function Home() {
              newPlayers = newPlayers.map(p => p.id === playerId ? { ...p, status: newStatus } : p);
         }
         
-        if (toastInfo) {
-            toast(toastInfo);
+        if (primaryToast) {
+            setLastToastInfo(primaryToast);
         }
+        if (secondaryToast) {
+            // This is a simplification; handling multiple toasts would require a queue.
+            // For now, secondary toast will overwrite primary if it exists.
+             setLastToastInfo(secondaryToast);
+        }
+
 
         return newPlayers;
     });
@@ -149,7 +157,7 @@ export default function Home() {
   const handleDraftTeams = () => {
     const rankedPlayersIn = playersIn.sort((a, b) => b.points - a.points);
     if (rankedPlayersIn.length < 2) {
-      toast({
+      setLastToastInfo({
         variant: "destructive",
         title: "Not Enough Players",
         description: "Need at least 2 players to draft teams.",
@@ -170,7 +178,7 @@ export default function Home() {
 
     setTeams({ teamA, teamB });
     setGamePhase("teams");
-    toast({
+    setLastToastInfo({
       title: "Teams Drafted!",
       description: "Team A and Team B have been selected.",
     });
@@ -225,7 +233,7 @@ export default function Home() {
     
     setGamePhase("results");
     setWinner(result);
-    toast({
+    setLastToastInfo({
       title: "Game Over!",
       description: toastMessage,
     });
@@ -236,7 +244,7 @@ export default function Home() {
     setGamePhase("availability");
     setWinner(null);
     setPlayers(prev => prev.map(p => ({...p, status: 'undecided'})));
-    toast({
+    setLastToastInfo({
         title: "New Game Started",
         description: "Player availability has been reset. Good luck!",
     });
@@ -260,13 +268,56 @@ export default function Home() {
                   </Button>
               </CardHeader>
               <CardContent>
-                  <PlayerLeaderboard
-                      players={sortedPlayers}
-                      onSetAvailability={handleSetAvailability}
-                      isLocked={gamePhase !== 'availability'}
-                      onEditPlayer={handleOpenPlayerDialog}
-                      onDeletePlayer={handleDeletePlayer}
-                  />
+                  <div className="space-y-6">
+                        <div>
+                            <h3 className="text-lg font-semibold flex items-center gap-2 mb-2 text-green-500">
+                                <Users /> Confirmed Players ({playersIn.length}/{MAX_PLAYERS_IN})
+                            </h3>
+                            <PlayerLeaderboard
+                                players={playersIn}
+                                onSetAvailability={handleSetAvailability}
+                                isLocked={gamePhase !== 'availability'}
+                                onEditPlayer={handleOpenPlayerDialog}
+                                onDeletePlayer={handleDeletePlayer}
+                                rankOffset={0}
+                            />
+                        </div>
+
+                        {playersWaiting.length > 0 && (
+                            <div>
+                                <Separator className="my-4"/>
+                                <h3 className="text-lg font-semibold flex items-center gap-2 mb-2 text-amber-500">
+                                    <Clock /> Waiting List ({playersWaiting.length})
+                                </h3>
+                                <PlayerLeaderboard
+                                    players={playersWaiting}
+                                    onSetAvailability={handleSetAvailability}
+                                    isLocked={gamePhase !== 'availability'}
+                                    onEditPlayer={handleOpenPlayerDialog}
+                                    onDeletePlayer={handleDeletePlayer}
+                                    rankOffset={playersIn.length}
+                                />
+                            </div>
+                        )}
+                        
+                        {otherPlayers.length > 0 && (
+                            <div>
+                                <Separator className="my-4"/>
+                                <h3 className="text-lg font-semibold flex items-center gap-2 mb-2 text-muted-foreground">
+                                    Other Players
+                                </h3>
+                                <PlayerLeaderboard
+                                    players={otherPlayers}
+                                    onSetAvailability={handleSetAvailability}
+                                    isLocked={gamePhase !== 'availability'}
+                                    onEditPlayer={handleOpenPlayerDialog}
+                                    onDeletePlayer={handleDeletePlayer}
+                                    rankOffset={playersIn.length + playersWaiting.length}
+                                    hideRank={true}
+                                />
+                            </div>
+                        )}
+                  </div>
               </CardContent>
             </Card>
             <MatchHistory matches={matchHistory} />

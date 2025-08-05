@@ -43,6 +43,8 @@ interface PlayerLeaderboardProps {
   isLocked: boolean;
   onEditPlayer: (player: Player) => void;
   onDeletePlayer: (playerId: number) => void;
+  rankOffset: number;
+  hideRank?: boolean;
 }
 
 const FormIndicator = ({ result }: { result: 'W' | 'D' | 'L'}) => {
@@ -63,9 +65,10 @@ const FormIndicator = ({ result }: { result: 'W' | 'D' | 'L'}) => {
     )
 }
 
-export function PlayerLeaderboard({ players, onSetAvailability, isLocked, onEditPlayer, onDeletePlayer }: PlayerLeaderboardProps) {
+export function PlayerLeaderboard({ players, onSetAvailability, isLocked, onEditPlayer, onDeletePlayer, rankOffset, hideRank = false }: PlayerLeaderboardProps) {
 
   const getRankIcon = (rank: number) => {
+    if (hideRank) return null;
     if (rank === 1) return <Star className="w-5 h-5 text-yellow-400 fill-yellow-400" />;
     if (rank === 2) return <Star className="w-5 h-5 text-slate-300 fill-slate-300" />;
     if (rank === 3) return <Star className="w-5 h-5 text-amber-600 fill-amber-600" />;
@@ -87,11 +90,18 @@ export function PlayerLeaderboard({ players, onSetAvailability, isLocked, onEdit
             </TableRow>
           </TableHeader>
           <TableBody>
+            {players.length === 0 && (
+                <TableRow>
+                    <TableCell colSpan={7} className="text-center text-muted-foreground h-24">
+                        No players in this category.
+                    </TableCell>
+                </TableRow>
+            )}
             {players.map((player, index) => (
               <TableRow key={player.id} className={player.status === 'in' ? 'bg-primary/5' : ''}>
                 <TableCell className="font-medium text-center">
                   <div className="flex justify-center items-center h-full">
-                   {getRankIcon(index + 1)}
+                   {getRankIcon(rankOffset + index + 1)}
                   </div>
                 </TableCell>
                 <TableCell>
