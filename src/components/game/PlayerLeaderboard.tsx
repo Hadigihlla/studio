@@ -10,7 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { LogIn, LogOut, Star, Edit, Trash, MoreVertical } from "lucide-react";
+import { ThumbsUp, ThumbsDown, Star, Edit, Trash, MoreVertical } from "lucide-react";
 import { Badge } from "../ui/badge";
 import {
   DropdownMenu,
@@ -122,7 +122,7 @@ export function PlayerLeaderboard({ players, onSetAvailability, isLocked, onEdit
                                 className="h-8 w-8 bg-green-500 hover:bg-green-600 border-green-500 text-white data-[state=selected]:bg-green-600"
                                 onClick={() => onSetAvailability(player.id, "in")}
                             >
-                                <LogIn className="h-4 w-4" />
+                                <ThumbsUp className="h-4 w-4" />
                             </Button>
                             <Button
                                 size="icon"
@@ -130,7 +130,7 @@ export function PlayerLeaderboard({ players, onSetAvailability, isLocked, onEdit
                                 className="h-8 w-8"
                                 onClick={() => onSetAvailability(player.id, "out")}
                             >
-                                <LogOut className="h-4 w-4" />
+                                <ThumbsDown className="h-4 w-4" />
                             </Button>
                         </div>
                     ) : (
