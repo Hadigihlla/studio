@@ -16,6 +16,7 @@ const spaceGrotesk = Space_Grotesk({
 export const metadata: Metadata = {
   title: 'HIRAFUS LEAGUE',
   description: 'Weekly Football Team Selections & Leaderboard',
+  manifest: '/manifest.json',
 };
 
 export default function RootLayout({
