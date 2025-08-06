@@ -31,11 +31,9 @@ export function ScoreInput({ value, onChange }: ScoreInputProps) {
 
   return (
     <div className="flex items-center gap-2">
-      {value > 0 && (
-        <Button size="icon" variant="outline" onClick={handleDecrement}>
-          <Minus className="h-4 w-4" />
-        </Button>
-      )}
+      <Button size="icon" variant="outline" onClick={handleDecrement} disabled={value <= 0}>
+        <Minus className="h-4 w-4" />
+      </Button>
       <Input
         type="number"
         min="0"
