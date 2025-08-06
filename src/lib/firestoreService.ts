@@ -10,7 +10,6 @@ import {
     query,
     orderBy,
     limit,
-    serverTimestamp
 } from 'firebase/firestore';
 import type { Player, Match } from '@/types';
 
@@ -27,14 +26,19 @@ export const getPlayers = async (): Promise<Player[]> => {
 
 export const addPlayer = async (playerData: Omit<Player, 'id'>): Promise<Player> => {
     const docRef = await addDoc(playersCollection, playerData);
-    return { id: docRef.id, ...playerData };
+    const newPlayer = { id: docRef.id, ...playerData, status: 'undecided', waitingTimestamp: null } as Player;
+    return newPlayer;
 };
 
 export const updatePlayer = async (player: Player): Promise<void> => {
     const { id, ...playerData } = player;
     if (!id) throw new Error("Player ID is required for update.");
     const playerDoc = doc(db, 'players', id);
-    await updateDoc(playerDoc, playerData);
+    // Ensure we don't save UI state like status to the DB
+    const dataToSave = { ...playerData };
+    delete (dataToSave as any).status;
+    delete (dataToSave as any).waitingTimestamp;
+    await updateDoc(playerDoc, dataToSave);
 };
 
 export const deletePlayer = async (playerId: string): Promise<void> => {
@@ -50,14 +54,6 @@ export const getMatches = async (): Promise<Match[]> => {
 };
 
 export const addMatch = async (matchData: Omit<Match, 'id'>): Promise<Match> => {
-    const matchPayload = {
-      ...matchData,
-      date: new Date().toISOString(), // Use client-side date for consistency
-      teams: {
-          teamA: matchData.teams.teamA.map(p => ({...p})), // Ensure players are plain objects
-          teamB: matchData.teams.teamB.map(p => ({...p})),
-      }
-    };
-    const docRef = await addDoc(matchesCollection, matchPayload);
-    return { id: docRef.id, ...matchPayload };
+    const docRef = await addDoc(matchesCollection, matchData);
+    return { id: docRef.id, ...matchData };
 };

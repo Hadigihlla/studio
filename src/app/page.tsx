@@ -50,7 +50,11 @@ export default function Home() {
             
             if (fetchedPlayers.length === 0) {
               // If no players in DB, populate with initial data
-              await Promise.all(initialPlayers.map(p => addPlayer(p)));
+              const playersToCreate = initialPlayers.map(p => {
+                const { id, ...playerData } = p;
+                return addPlayer(playerData as Omit<Player, 'id'>);
+              });
+              await Promise.all(playersToCreate);
               const populatedPlayers = await getPlayers();
               setPlayers(populatedPlayers);
             } else {
@@ -349,9 +353,8 @@ export default function Home() {
     const newMatchData: Omit<Match, 'id'> = {
       date: new Date().toISOString(),
       teams: {
-        // Storing only player IDs to keep documents smaller
-        teamA: teams.teamA.map(p => ({...p, id: p.id || ''})),
-        teamB: teams.teamB.map(p => ({...p, id: p.id || ''}))
+        teamA: teams.teamA.map(p => ({...p})),
+        teamB: teams.teamB.map(p => ({...p}))
       },
       result: result,
       scoreA: scores.teamA,

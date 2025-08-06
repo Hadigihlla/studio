@@ -4,7 +4,7 @@ export type Form = ('W' | 'D' | 'L')[];
 export type Penalty = "late" | "no-show" | undefined;
 
 export interface Player {
-  id: string;
+  id: string; // Firestore IDs are strings
   name: string;
   points: number;
   status: PlayerStatus;
@@ -24,7 +24,10 @@ export interface Team {
 export interface Match {
     id: string;
     date: string;
-    teams: Team;
+    teams: { // Storing a simplified Player object to avoid nesting full player data in matches
+      teamA: { id: string, name: string }[];
+      teamB: { id: string, name: string }[];
+    };
     result: Result;
     scoreA: number;
     scoreB: number;
