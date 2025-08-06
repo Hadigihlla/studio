@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 
 interface PlayerLeaderboardProps {
   players: Player[];
-  onSetAvailability: (playerId: number, status: PlayerStatus) => void;
+  onSetAvailability: (playerId: string, status: PlayerStatus) => void;
   isLocked: boolean;
 }
 

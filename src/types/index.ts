@@ -4,7 +4,7 @@ export type Form = ('W' | 'D' | 'L')[];
 export type Penalty = "late" | "no-show" | undefined;
 
 export interface Player {
-  id: number;
+  id: string;
   name: string;
   points: number;
   status: PlayerStatus;
@@ -22,13 +22,11 @@ export interface Team {
 }
 
 export interface Match {
-    id: number;
+    id: string;
     date: string;
     teams: Team;
     result: Result;
     scoreA: number;
     scoreB: number;
-    penalties: Record<number, Penalty>;
+    penalties: Record<string, Penalty>;
 }
-
-    

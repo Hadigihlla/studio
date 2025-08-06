@@ -2,7 +2,6 @@
 
 import { useState, useMemo, useEffect } from "react";
 import type { Player, PlayerStatus, Team, Match, Result, Penalty } from "@/types";
-import { initialPlayers } from "@/lib/initial-players";
 import { Header } from "@/components/game/Header";
 import { UpcomingGame } from "@/components/game/UpcomingGame";
 import { PlayerLeaderboard } from "@/components/game/PlayerLeaderboard";
@@ -17,11 +16,13 @@ import { PlayerDialog } from "@/components/game/PlayerDialog";
 import { Separator } from "@/components/ui/separator";
 import { LeagueStandings } from "@/components/game/LeagueStandings";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { addPlayer, deletePlayer, getPlayers, updatePlayer, addMatch, getMatches } from "@/lib/firestoreService";
+import { initialPlayers } from "@/lib/initial-players";
 
 const MAX_PLAYERS_IN = 14;
 
 export default function Home() {
-  const [players, setPlayers] = useState<Player[]>(initialPlayers);
+  const [players, setPlayers] = useState<Player[]>([]);
   const [teams, setTeams] = useState<Team | null>(null);
   const [gamePhase, setGamePhase] = useState<"availability" | "teams" | "results">("availability");
   const [winner, setWinner] = useState<Result | null>(null);
@@ -29,41 +30,48 @@ export default function Home() {
   const [isPlayerDialogOpen, setIsPlayerDialogOpen] = useState(false);
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
   const [lastToastInfo, setLastToastInfo] = useState<{ title: string, description: string, variant?: "default" | "destructive" } | null>(null);
-  const [penalties, setPenalties] = useState<Record<number, Penalty>>({});
+  const [penalties, setPenalties] = useState<Record<string, Penalty>>({});
   const [scores, setScores] = useState<{ teamA: number; teamB: number }>({ teamA: 0, teamB: 0 });
   const [isClient, setIsClient] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     setIsClient(true);
   }, []);
 
-  // Load state from localStorage on initial load
+  // Load state from Firestore on initial load
   useEffect(() => {
     if (!isClient) return;
-    try {
-      const savedPlayers = localStorage.getItem("players");
-      if (savedPlayers) {
-        setPlayers(JSON.parse(savedPlayers));
-      }
-      const savedMatchHistory = localStorage.getItem("matchHistory");
-      if (savedMatchHistory) {
-        setMatchHistory(JSON.parse(savedMatchHistory));
-      }
-    } catch (error) {
-      console.error("Failed to load state from localStorage", error);
-    }
-  }, [isClient]);
 
-  // Save state to localStorage whenever players or matchHistory change
-  useEffect(() => {
-    if (!isClient) return;
-    try {
-      localStorage.setItem("players", JSON.stringify(players));
-      localStorage.setItem("matchHistory", JSON.stringify(matchHistory));
-    } catch (error) {
-      console.error("Failed to save state to localStorage", error);
-    }
-  }, [players, matchHistory, isClient]);
+    const fetchInitialData = async () => {
+        setIsLoading(true);
+        try {
+            const [fetchedPlayers, fetchedMatches] = await Promise.all([getPlayers(), getMatches()]);
+            
+            if (fetchedPlayers.length === 0) {
+              // If no players in DB, populate with initial data
+              await Promise.all(initialPlayers.map(p => addPlayer(p)));
+              const populatedPlayers = await getPlayers();
+              setPlayers(populatedPlayers);
+            } else {
+              setPlayers(fetchedPlayers);
+            }
+            
+            setMatchHistory(fetchedMatches);
+
+        } catch (error) {
+            console.error("Failed to load data from Firestore", error);
+            setLastToastInfo({
+                variant: 'destructive',
+                title: 'Error Loading Data',
+                description: 'Could not fetch data from the database. Please check your connection and try again.'
+            });
+        }
+        setIsLoading(false);
+    };
+    
+    fetchInitialData();
+}, [isClient]);
 
 
   const { toast } = useToast();
@@ -94,46 +102,67 @@ export default function Home() {
     setIsPlayerDialogOpen(true);
   };
 
-  const handleSavePlayer = (playerData: Omit<Player, 'id' | 'status' | 'matchesPlayed' | 'wins' | 'draws' | 'losses' | 'form' | 'waitingTimestamp'> & { id?: number }) => {
+  const handleSavePlayer = async (playerData: Omit<Player, 'id' | 'status' | 'matchesPlayed' | 'wins' | 'draws' | 'losses' | 'form' | 'waitingTimestamp'> & { id?: string }) => {
     let toastInfo: { title: string, description: string };
-    if (playerData.id) { // Editing existing player
-      const updatedPlayer = players.find(p => p.id === playerData.id);
-      if (updatedPlayer) {
-          setPlayers(prev => prev.map(p => p.id === playerData.id ? { ...p, name: playerData.name, points: playerData.points } : p));
+    try {
+      if (playerData.id) { // Editing existing player
+        const updatedPlayer = players.find(p => p.id === playerData.id);
+        if (updatedPlayer) {
+          const playerToUpdate = { ...updatedPlayer, name: playerData.name, points: playerData.points };
+          await updatePlayer(playerToUpdate);
+          setPlayers(prev => prev.map(p => p.id === playerData.id ? playerToUpdate : p));
           toastInfo = { title: "Player Updated", description: `${playerData.name}'s details have been saved.` };
-      } else {
-        return; // Should not happen
+        } else {
+          return; // Should not happen
+        }
+      } else { // Adding new player
+        const newPlayer: Omit<Player, 'id'> = {
+          name: playerData.name,
+          points: playerData.points,
+          status: 'undecided',
+          matchesPlayed: 0,
+          wins: 0,
+          draws: 0,
+          losses: 0,
+          form: [],
+          waitingTimestamp: null,
+        };
+        const addedPlayer = await addPlayer(newPlayer);
+        setPlayers(prev => [...prev, addedPlayer]);
+        toastInfo = { title: "Player Added", description: `${addedPlayer.name} has joined the roster.` };
       }
-    } else { // Adding new player
-      const newPlayer: Player = {
-        id: Date.now(),
-        name: playerData.name,
-        points: playerData.points,
-        status: 'undecided',
-        matchesPlayed: 0,
-        wins: 0,
-        draws: 0,
-        losses: 0,
-        form: [],
-        waitingTimestamp: null,
-      };
-      setPlayers(prev => [...prev, newPlayer]);
-      toastInfo = { title: "Player Added", description: `${newPlayer.name} has joined the roster.` };
+      setLastToastInfo(toastInfo);
+      setIsPlayerDialogOpen(false);
+    } catch (error) {
+      console.error("Failed to save player:", error);
+      setLastToastInfo({
+        variant: "destructive",
+        title: "Database Error",
+        description: "Could not save player details. Please try again.",
+      });
     }
-    setLastToastInfo(toastInfo);
-    setIsPlayerDialogOpen(false);
   };
 
-  const handleDeletePlayer = (playerId: number) => {
+  const handleDeletePlayer = async (playerId: string) => {
     const player = players.find(p => p.id === playerId);
     if(player) {
-      setLastToastInfo({ variant: 'destructive', title: "Player Removed", description: `${player.name} has been removed.` });
+      try {
+        await deletePlayer(playerId);
+        setPlayers(prev => prev.filter(p => p.id !== playerId));
+        setLastToastInfo({ variant: 'destructive', title: "Player Removed", description: `${player.name} has been removed.` });
+      } catch (error) {
+        console.error("Failed to delete player:", error);
+        setLastToastInfo({
+          variant: "destructive",
+          title: "Database Error",
+          description: "Could not remove player. Please try again.",
+        });
+      }
     }
-    setPlayers(prev => prev.filter(p => p.id !== playerId));
   };
 
 
-  const handleSetAvailability = (playerId: number, newStatus: PlayerStatus) => {
+  const handleSetAvailability = (playerId: string, newStatus: PlayerStatus) => {
     if (gamePhase !== 'availability') {
         setLastToastInfo({
             variant: "destructive",
@@ -152,7 +181,7 @@ export default function Home() {
         let primaryToast: { title: string, description: string, variant?: "default" | "destructive" } | null = null;
         let secondaryToast: { title: string, description: string, variant?: "default" | "destructive" } | null = null;
 
-        const updatePlayerStatus = (id: number, status: PlayerStatus) => {
+        const updatePlayerStatus = (id: string, status: PlayerStatus) => {
             const timestamp = status === 'waiting' ? Date.now() : null;
             return newPlayers.map(p => p.id === id ? { ...p, status, waitingTimestamp: timestamp } : p);
         }
@@ -239,30 +268,34 @@ export default function Home() {
     playersToUpdate: Player[],
     result: 'W' | 'D' | 'L'
   ) => {
-    // Exclude no-show players from getting points for W/D
     const eligiblePlayers = result === 'L' 
         ? playersToUpdate
         : playersToUpdate.filter(p => penalties[p.id] !== 'no-show');
 
     const playerIds = new Set(eligiblePlayers.map(p => p.id));
     
-    setPlayers(prev => prev.map(p => {
-      if (playerIds.has(p.id)) {
-        return {
-          ...p,
-          points: p.points + (result === 'W' ? 3 : result === 'D' ? 2 : 0),
-          matchesPlayed: p.matchesPlayed + 1,
-          wins: p.wins + (result === 'W' ? 1 : 0),
-          draws: p.draws + (result === 'D' ? 1 : 0),
-          losses: p.losses + (result === 'L' ? 1 : 0),
-          form: [result, ...p.form].slice(0, 5),
-        }
-      }
-      return p;
-    }));
+    setPlayers(prev => {
+        const updatedPlayers = prev.map(p => {
+          if (playerIds.has(p.id)) {
+            const newStats = {
+              ...p,
+              points: p.points + (result === 'W' ? 3 : result === 'D' ? 2 : 0),
+              matchesPlayed: p.matchesPlayed + 1,
+              wins: p.wins + (result === 'W' ? 1 : 0),
+              draws: p.draws + (result === 'D' ? 1 : 0),
+              losses: p.losses + (result === 'L' ? 1 : 0),
+              form: [result, ...p.form].slice(0, 5),
+            };
+            updatePlayer(newStats).catch(e => console.error("Failed to update player stats in DB", e));
+            return newStats;
+          }
+          return p;
+        });
+        return updatedPlayers;
+    });
   };
 
-  const handleRecordResult = () => {
+  const handleRecordResult = async () => {
     if (!teams) return;
 
     let toastMessage = "";
@@ -272,17 +305,23 @@ export default function Home() {
     let penaltyToastDescription = "";
     const penaltyDeductions: Record<string, number> = {};
     
+    const penaltyPromises = Object.entries(penalties).map(async ([playerId, penalty]) => {
+      const player = players.find(p => p.id === playerId);
+      if (player && penalty) {
+        const deduction = penalty === 'late' ? 2 : 3;
+        penaltyDeductions[player.name] = deduction;
+        const updatedPlayer = { ...player, points: player.points - deduction };
+        await updatePlayer(updatedPlayer);
+        return updatedPlayer;
+      }
+      return null;
+    });
+
+    const updatedPlayersWithPenalties = (await Promise.all(penaltyPromises)).filter(p => p !== null) as Player[];
+
     setPlayers(prevPlayers => {
-      let tempPlayers = [...prevPlayers];
-      Object.entries(penalties).forEach(([playerId, penalty]) => {
-        const playerIndex = tempPlayers.findIndex(p => p.id === Number(playerId));
-        if (playerIndex > -1 && penalty) {
-          const deduction = penalty === 'late' ? 2 : 3;
-          penaltyDeductions[tempPlayers[playerIndex].name] = deduction;
-          tempPlayers[playerIndex] = { ...tempPlayers[playerIndex], points: tempPlayers[playerIndex].points - deduction };
-        }
-      });
-      return tempPlayers;
+        const playerMap = new Map(updatedPlayersWithPenalties.map(p => [p.id, p]));
+        return prevPlayers.map(p => playerMap.get(p.id) || p);
     });
 
     const penaltyMessages = Object.entries(penaltyDeductions);
@@ -307,17 +346,31 @@ export default function Home() {
       toastMessage = "It's a draw! +2 points for all players.";
     }
 
-    const newMatch: Match = {
-      id: Date.now(),
+    const newMatchData: Omit<Match, 'id'> = {
       date: new Date().toISOString(),
-      teams: teams,
+      teams: {
+        // Storing only player IDs to keep documents smaller
+        teamA: teams.teamA.map(p => ({...p, id: p.id || ''})),
+        teamB: teams.teamB.map(p => ({...p, id: p.id || ''}))
+      },
       result: result,
       scoreA: scores.teamA,
       scoreB: scores.teamB,
       penalties: penalties,
     };
-    setMatchHistory(prev => [newMatch, ...prev]);
-    
+
+    try {
+      const newMatch = await addMatch(newMatchData);
+      setMatchHistory(prev => [newMatch, ...prev]);
+    } catch(e) {
+      console.error("Failed to save match:", e);
+      setLastToastInfo({
+        variant: "destructive",
+        title: "Database Error",
+        description: "Could not save the match result. Please try again.",
+      });
+    }
+
     setGamePhase("results");
     setWinner(result);
     setLastToastInfo({
@@ -339,7 +392,7 @@ export default function Home() {
     });
   };
   
-  const handleSetPenalty = (playerId: number, penalty: Penalty) => {
+  const handleSetPenalty = (playerId: string, penalty: Penalty) => {
     setPenalties(prev => {
       const newPenalties = {...prev};
       if (newPenalties[playerId] === penalty) {
@@ -350,6 +403,20 @@ export default function Home() {
       return newPenalties;
     });
   };
+
+  if (isLoading) {
+    return (
+        <div className="flex justify-center items-center h-screen">
+            <div className="flex flex-col items-center gap-4">
+                <svg className="animate-spin h-10 w-10 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <p className="text-muted-foreground">Loading League Data...</p>
+            </div>
+        </div>
+    )
+  }
 
   return (
     <>
@@ -468,7 +535,7 @@ export default function Home() {
           </TabsContent>
 
           <TabsContent value="history">
-            <MatchHistory matches={matchHistory} />
+            <MatchHistory matches={matchHistory} players={players} />
           </TabsContent>
         </Tabs>
       </main>

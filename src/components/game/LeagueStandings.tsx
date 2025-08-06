@@ -40,7 +40,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 interface LeagueStandingsProps {
   players: Player[];
   onEditPlayer: (player: Player) => void;
-  onDeletePlayer: (playerId: number) => void;
+  onDeletePlayer: (playerId: string) => void;
   onAddPlayer: () => void;
 }
 

@@ -17,8 +17,8 @@ import {
 interface TeamDisplayProps {
   teams: Team;
   winner: Result | null;
-  penalties: Record<number, Penalty>;
-  onSetPenalty: (playerId: number, penalty: Penalty) => void;
+  penalties: Record<string, Penalty>;
+  onSetPenalty: (playerId: string, penalty: Penalty) => void;
   isLocked: boolean;
 }
 
@@ -28,9 +28,9 @@ const PenaltyIcons = ({
   onSetPenalty,
   isLocked 
 } : {
-  playerId: number,
+  playerId: string,
   currentPenalty: Penalty,
-  onSetPenalty: (playerId: number, penalty: Penalty) => void,
+  onSetPenalty: (playerId: string, penalty: Penalty) => void,
   isLocked: boolean
 }) => {
   if (isLocked) {
@@ -99,8 +99,8 @@ const TeamCard = ({
   title: string;
   titleColor: string;
   isWinner: boolean;
-  penalties: Record<number, Penalty>;
-  onSetPenalty: (playerId: number, penalty: Penalty) => void;
+  penalties: Record<string, Penalty>;
+  onSetPenalty: (playerId: string, penalty: Penalty) => void;
   isLocked: boolean;
 }) => (
   <Card className={cn(isWinner && "border-accent ring-2 ring-accent bg-accent/10", "transition-all duration-300")}>
@@ -164,5 +164,3 @@ export function TeamDisplay({ teams, winner, penalties, onSetPenalty, isLocked }
     </div>
   );
 }
-
-    
