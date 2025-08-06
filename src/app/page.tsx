@@ -17,7 +17,6 @@ import { Separator } from "@/components/ui/separator";
 import { LeagueStandings } from "@/components/game/LeagueStandings";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { addPlayer, deletePlayer, getPlayers, updatePlayer, addMatch, getMatches } from "@/lib/firestoreService";
-import { initialPlayers } from "@/lib/initial-players";
 
 const MAX_PLAYERS_IN = 14;
 
@@ -39,15 +38,7 @@ export default function Home() {
     const fetchInitialData = async () => {
         setIsLoading(true);
         try {
-            let fetchedPlayers = await getPlayers();
-            
-            if (fetchedPlayers.length === 0) {
-              // If no players in DB, populate with initial data
-              const creationPromises = initialPlayers.map(p => addPlayer(p));
-              await Promise.all(creationPromises);
-              fetchedPlayers = await getPlayers();
-            }
-            
+            const fetchedPlayers = await getPlayers();
             const fetchedMatches = await getMatches();
             
             setPlayers(fetchedPlayers);
