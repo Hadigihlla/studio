@@ -31,6 +31,40 @@ export default function Home() {
   const [lastToastInfo, setLastToastInfo] = useState<{ title: string, description: string, variant?: "default" | "destructive" } | null>(null);
   const [penalties, setPenalties] = useState<Record<number, Penalty>>({});
   const [scores, setScores] = useState<{ teamA: number; teamB: number }>({ teamA: 0, teamB: 0 });
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  // Load state from localStorage on initial load
+  useEffect(() => {
+    if (!isClient) return;
+    try {
+      const savedPlayers = localStorage.getItem("players");
+      if (savedPlayers) {
+        setPlayers(JSON.parse(savedPlayers));
+      }
+      const savedMatchHistory = localStorage.getItem("matchHistory");
+      if (savedMatchHistory) {
+        setMatchHistory(JSON.parse(savedMatchHistory));
+      }
+    } catch (error) {
+      console.error("Failed to load state from localStorage", error);
+    }
+  }, [isClient]);
+
+  // Save state to localStorage whenever players or matchHistory change
+  useEffect(() => {
+    if (!isClient) return;
+    try {
+      localStorage.setItem("players", JSON.stringify(players));
+      localStorage.setItem("matchHistory", JSON.stringify(matchHistory));
+    } catch (error) {
+      console.error("Failed to save state to localStorage", error);
+    }
+  }, [players, matchHistory, isClient]);
+
 
   const { toast } = useToast();
   
