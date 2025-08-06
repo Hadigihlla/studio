@@ -16,7 +16,7 @@ import { PlayerDialog } from "@/components/game/PlayerDialog";
 import { Separator } from "@/components/ui/separator";
 import { LeagueStandings } from "@/components/game/LeagueStandings";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { addPlayer, deletePlayer, getPlayers, updatePlayer, addMatch, getMatches } from "@/lib/firestoreService";
+import { initialPlayers } from "@/lib/initial-players";
 
 const MAX_PLAYERS_IN = 14;
 
@@ -33,31 +33,54 @@ export default function Home() {
   const [scores, setScores] = useState<{ teamA: number; teamB: number }>({ teamA: 0, teamB: 0 });
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load state from Firestore on initial load
+  // Load state from localStorage on initial load
   useEffect(() => {
-    const fetchInitialData = async () => {
-        setIsLoading(true);
-        try {
-            const fetchedPlayers = await getPlayers();
-            const fetchedMatches = await getMatches();
-            
-            setPlayers(fetchedPlayers);
-            setMatchHistory(fetchedMatches);
+    setIsLoading(true);
+    try {
+      const savedPlayers = localStorage.getItem("players");
+      const savedMatches = localStorage.getItem("matchHistory");
 
-        } catch (error) {
-            console.error("Failed to load data from Firestore", error);
-            setLastToastInfo({
-                variant: 'destructive',
-                title: 'Error Loading Data',
-                description: 'Could not fetch data from the database. Please check your connection and try again.'
-            });
-        } finally {
-            setIsLoading(false);
-        }
-    };
-    
-    fetchInitialData();
+      if (savedPlayers) {
+        setPlayers(JSON.parse(savedPlayers));
+      } else {
+        // If no players in storage, initialize with sample data
+        const playersWithIds = initialPlayers.map((p, index) => ({...p, id: `p${index + 1}`}));
+        setPlayers(playersWithIds);
+      }
+      
+      if (savedMatches) {
+        setMatchHistory(JSON.parse(savedMatches));
+      }
+    } catch (error) {
+        console.error("Failed to load data from localStorage", error);
+        setLastToastInfo({
+            variant: 'destructive',
+            title: 'Error Loading Data',
+            description: 'Could not fetch data. Your saved data might be corrupted.'
+        });
+    } finally {
+        setIsLoading(false);
+    }
   }, []);
+
+  // Save state to localStorage whenever it changes
+  useEffect(() => {
+    try {
+      if (players.length > 0) {
+        localStorage.setItem("players", JSON.stringify(players));
+      }
+      if (matchHistory.length > 0) {
+        localStorage.setItem("matchHistory", JSON.stringify(matchHistory));
+      }
+    } catch (error) {
+      console.error("Failed to save data to localStorage", error);
+      setLastToastInfo({
+        variant: 'destructive',
+        title: 'Error Saving Data',
+        description: 'Could not save your changes.'
+      });
+    }
+  }, [players, matchHistory]);
 
 
   const { toast } = useToast();
@@ -88,21 +111,15 @@ export default function Home() {
     setIsPlayerDialogOpen(true);
   };
 
-  const handleSavePlayer = async (playerData: Omit<Player, 'id' | 'status' | 'matchesPlayed' | 'wins' | 'draws' | 'losses' | 'form' | 'waitingTimestamp'> & { id?: string }) => {
+  const handleSavePlayer = (playerData: Omit<Player, 'id' | 'status' | 'matchesPlayed' | 'wins' | 'draws' | 'losses' | 'form' | 'waitingTimestamp'> & { id?: string }) => {
     let toastInfo: { title: string, description: string };
     try {
       if (playerData.id) { // Editing existing player
-        const updatedPlayer = players.find(p => p.id === playerData.id);
-        if (updatedPlayer) {
-          const playerToUpdate = { ...updatedPlayer, name: playerData.name, points: playerData.points };
-          await updatePlayer(playerToUpdate);
-          setPlayers(prev => prev.map(p => p.id === playerData.id ? playerToUpdate : p));
-          toastInfo = { title: "Player Updated", description: `${playerData.name}'s details have been saved.` };
-        } else {
-          return; // Should not happen
-        }
+        setPlayers(prev => prev.map(p => p.id === playerData.id ? { ...p, name: playerData.name, points: playerData.points } : p));
+        toastInfo = { title: "Player Updated", description: `${playerData.name}'s details have been saved.` };
       } else { // Adding new player
-        const newPlayer: Omit<Player, 'id'> = {
+        const newPlayer: Player = {
+          id: `p${Date.now()}`, // Simple unique ID
           name: playerData.name,
           points: playerData.points,
           status: 'undecided',
@@ -113,9 +130,8 @@ export default function Home() {
           form: [],
           waitingTimestamp: null,
         };
-        const addedPlayer = await addPlayer(newPlayer);
-        setPlayers(prev => [...prev, addedPlayer]);
-        toastInfo = { title: "Player Added", description: `${addedPlayer.name} has joined the roster.` };
+        setPlayers(prev => [...prev, newPlayer]);
+        toastInfo = { title: "Player Added", description: `${newPlayer.name} has joined the roster.` };
       }
       setLastToastInfo(toastInfo);
       setIsPlayerDialogOpen(false);
@@ -123,27 +139,17 @@ export default function Home() {
       console.error("Failed to save player:", error);
       setLastToastInfo({
         variant: "destructive",
-        title: "Database Error",
+        title: "Error",
         description: "Could not save player details. Please try again.",
       });
     }
   };
 
-  const handleDeletePlayer = async (playerId: string) => {
+  const handleDeletePlayer = (playerId: string) => {
     const player = players.find(p => p.id === playerId);
     if(player) {
-      try {
-        await deletePlayer(playerId);
-        setPlayers(prev => prev.filter(p => p.id !== playerId));
-        setLastToastInfo({ variant: 'destructive', title: "Player Removed", description: `${player.name} has been removed.` });
-      } catch (error) {
-        console.error("Failed to delete player:", error);
-        setLastToastInfo({
-          variant: "destructive",
-          title: "Database Error",
-          description: "Could not remove player. Please try again.",
-        });
-      }
+      setPlayers(prev => prev.filter(p => p.id !== playerId));
+      setLastToastInfo({ variant: 'destructive', title: "Player Removed", description: `${player.name} has been removed.` });
     }
   };
 
@@ -263,7 +269,7 @@ export default function Home() {
     setPlayers(prev => {
         const updatedPlayers = prev.map(p => {
           if (playerIds.has(p.id)) {
-            const newStats = {
+            return {
               ...p,
               points: p.points + (result === 'W' ? 3 : result === 'D' ? 2 : 0),
               matchesPlayed: p.matchesPlayed + 1,
@@ -272,8 +278,6 @@ export default function Home() {
               losses: p.losses + (result === 'L' ? 1 : 0),
               form: [result, ...p.form].slice(0, 5),
             };
-            updatePlayer(newStats).catch(e => console.error("Failed to update player stats in DB", e));
-            return newStats;
           }
           return p;
         });
@@ -281,7 +285,7 @@ export default function Home() {
     });
   };
 
-  const handleRecordResult = async () => {
+  const handleRecordResult = () => {
     if (!teams) return;
 
     let toastMessage = "";
@@ -291,23 +295,13 @@ export default function Home() {
     let penaltyToastDescription = "";
     const penaltyDeductions: Record<string, number> = {};
     
-    const penaltyPromises = Object.entries(penalties).map(async ([playerId, penalty]) => {
+    Object.entries(penalties).forEach(([playerId, penalty]) => {
       const player = players.find(p => p.id === playerId);
       if (player && penalty) {
         const deduction = penalty === 'late' ? 2 : 3;
         penaltyDeductions[player.name] = deduction;
-        const updatedPlayer = { ...player, points: player.points - deduction };
-        await updatePlayer(updatedPlayer);
-        return updatedPlayer;
+        setPlayers(prev => prev.map(p => p.id === playerId ? { ...p, points: p.points - deduction } : p));
       }
-      return null;
-    });
-
-    const updatedPlayersWithPenalties = (await Promise.all(penaltyPromises)).filter(p => p !== null) as Player[];
-
-    setPlayers(prevPlayers => {
-        const playerMap = new Map(updatedPlayersWithPenalties.map(p => [p.id, p]));
-        return prevPlayers.map(p => playerMap.get(p.id) || p);
     });
 
     const penaltyMessages = Object.entries(penaltyDeductions);
@@ -332,7 +326,8 @@ export default function Home() {
       toastMessage = "It's a draw! +2 points for all players.";
     }
 
-    const newMatchData: Omit<Match, 'id'> = {
+    const newMatch: Match = {
+      id: `m${Date.now()}`,
       date: new Date().toISOString(),
       teams: {
         teamA: teams.teamA.map(p => ({id: p.id, name: p.name})),
@@ -344,17 +339,7 @@ export default function Home() {
       penalties: penalties,
     };
 
-    try {
-      const newMatch = await addMatch(newMatchData);
-      setMatchHistory(prev => [newMatch, ...prev]);
-    } catch(e) {
-      console.error("Failed to save match:", e);
-      setLastToastInfo({
-        variant: "destructive",
-        title: "Database Error",
-        description: "Could not save the match result. Please try again.",
-      });
-    }
+    setMatchHistory(prev => [newMatch, ...prev]);
 
     setGamePhase("results");
     setWinner(result);
