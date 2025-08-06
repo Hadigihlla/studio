@@ -11,11 +11,12 @@ import { TeamDisplay } from "@/components/game/TeamDisplay";
 import { Confetti } from "@/components/game/Confetti";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Award, Plus, Users, Clock } from "lucide-react";
+import { Award, Plus, Users, Clock, Trophy } from "lucide-react";
 import { MatchHistory } from "@/components/game/MatchHistory";
 import { PlayerDialog } from "@/components/game/PlayerDialog";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { LeagueStandings } from "@/components/game/LeagueStandings";
 
 const MAX_PLAYERS_IN = 14;
 
@@ -323,72 +324,22 @@ export default function Home() {
         <Header />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          
+          {/* Left Column */}
           <div className="lg:col-span-2 space-y-6">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                  <CardTitle className="flex items-center gap-2 font-headline">
-                      Player Roster
-                  </CardTitle>
-                  <Button onClick={() => handleOpenPlayerDialog(null)} size="sm">
-                      <Plus className="mr-2" /> Add Player
-                  </Button>
-              </CardHeader>
-              <CardContent>
-                  <div className="space-y-6">
-                        <div>
-                            <h3 className="text-lg font-semibold flex items-center gap-2 mb-2 text-green-500">
-                                <Users /> Confirmed Players ({playersIn.length}/{MAX_PLAYERS_IN})
-                            </h3>
-                            <PlayerLeaderboard
-                                players={playersIn}
-                                onSetAvailability={handleSetAvailability}
-                                isLocked={gamePhase !== 'availability'}
-                                onEditPlayer={handleOpenPlayerDialog}
-                                onDeletePlayer={handleDeletePlayer}
-                                rankOffset={0}
-                            />
-                        </div>
-
-                        {playersWaiting.length > 0 && (
-                            <div>
-                                <Separator className="my-4"/>
-                                <h3 className="text-lg font-semibold flex items-center gap-2 mb-2 text-amber-500">
-                                    <Clock /> Waiting List ({playersWaiting.length})
-                                </h3>
-                                <PlayerLeaderboard
-                                    players={playersWaiting}
-                                    onSetAvailability={handleSetAvailability}
-                                    isLocked={gamePhase !== 'availability'}
-                                    onEditPlayer={handleOpenPlayerDialog}
-                                    onDeletePlayer={handleDeletePlayer}
-                                    rankOffset={playersIn.length}
-                                />
-                            </div>
-                        )}
-                        
-                        <div>
-                            <Separator className="my-4"/>
-                            <h3 className="text-lg font-semibold flex items-center gap-2 mb-2 text-muted-foreground">
-                                Other Players
-                            </h3>
-                            <PlayerLeaderboard
-                                players={otherPlayers}
-                                onSetAvailability={handleSetAvailability}
-                                isLocked={gamePhase !== 'availability'}
-                                onEditPlayer={handleOpenPlayerDialog}
-                                onDeletePlayer={handleDeletePlayer}
-                                rankOffset={playersIn.length + playersWaiting.length}
-                                hideRank={true}
-                            />
-                        </div>
-                  </div>
-              </CardContent>
-            </Card>
+            <LeagueStandings 
+              players={sortedPlayers}
+              onEditPlayer={handleOpenPlayerDialog}
+              onDeletePlayer={handleDeletePlayer}
+              onAddPlayer={() => handleOpenPlayerDialog(null)}
+            />
             <MatchHistory matches={matchHistory} />
           </div>
           
+          {/* Right Column */}
           <div className="space-y-6">
             <UpcomingGame />
+            
             <GameControls 
               onDraftTeams={handleDraftTeams}
               onRecordResult={handleRecordResult}
@@ -399,6 +350,56 @@ export default function Home() {
               setScores={setScores}
             />
 
+            {gamePhase === 'availability' && (
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                    <CardTitle className="flex items-center gap-2 font-headline">
+                        Set Availability
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="space-y-6">
+                          <div>
+                              <h3 className="text-lg font-semibold flex items-center gap-2 mb-2 text-green-500">
+                                  <Users /> Confirmed Players ({playersIn.length}/{MAX_PLAYERS_IN})
+                              </h3>
+                              <PlayerLeaderboard
+                                  players={playersIn}
+                                  onSetAvailability={handleSetAvailability}
+                                  isLocked={gamePhase !== 'availability'}
+                              />
+                          </div>
+
+                          {playersWaiting.length > 0 && (
+                              <div>
+                                  <Separator className="my-4"/>
+                                  <h3 className="text-lg font-semibold flex items-center gap-2 mb-2 text-amber-500">
+                                      <Clock /> Waiting List ({playersWaiting.length})
+                                  </h3>
+                                  <PlayerLeaderboard
+                                      players={playersWaiting}
+                                      onSetAvailability={handleSetAvailability}
+                                      isLocked={gamePhase !== 'availability'}
+                                  />
+                              </div>
+                          )}
+                          
+                          <div>
+                              <Separator className="my-4"/>
+                              <h3 className="text-lg font-semibold flex items-center gap-2 mb-2 text-muted-foreground">
+                                  Undecided / Out
+                              </h3>
+                              <PlayerLeaderboard
+                                  players={otherPlayers}
+                                  onSetAvailability={handleSetAvailability}
+                                  isLocked={gamePhase !== 'availability'}
+                              />
+                          </div>
+                    </div>
+                </CardContent>
+              </Card>
+            )}
+            
             {gamePhase !== 'availability' && teams && (
               <TeamDisplay 
                 teams={teams} 
