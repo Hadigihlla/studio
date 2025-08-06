@@ -11,12 +11,12 @@ import { TeamDisplay } from "@/components/game/TeamDisplay";
 import { Confetti } from "@/components/game/Confetti";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Award, Plus, Users, Clock, Trophy } from "lucide-react";
+import { Award, Users, Clock } from "lucide-react";
 import { MatchHistory } from "@/components/game/MatchHistory";
 import { PlayerDialog } from "@/components/game/PlayerDialog";
-import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { LeagueStandings } from "@/components/game/LeagueStandings";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const MAX_PLAYERS_IN = 14;
 
@@ -322,110 +322,121 @@ export default function Home() {
       <main className="container mx-auto p-4 md:p-8 relative">
         {winner && <Confetti />}
         <Header />
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <Tabs defaultValue="match-day">
+          <TabsList className="grid w-full grid-cols-3 mb-6">
+            <TabsTrigger value="match-day">Match Day</TabsTrigger>
+            <TabsTrigger value="standings">League Standings</TabsTrigger>
+            <TabsTrigger value="history">Match History</TabsTrigger>
+          </TabsList>
           
-          {/* Left Column */}
-          <div className="lg:col-span-2 space-y-6">
+          <TabsContent value="match-day">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2 space-y-6">
+                {/* Availability Section */}
+                {gamePhase === 'availability' && (
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between">
+                        <CardTitle className="flex items-center gap-2 font-headline">
+                            Set Availability
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-6">
+                              <div>
+                                  <h3 className="text-lg font-semibold flex items-center gap-2 mb-2 text-green-500">
+                                      <Users /> Confirmed Players ({playersIn.length}/{MAX_PLAYERS_IN})
+                                  </h3>
+                                  <PlayerLeaderboard
+                                      players={playersIn}
+                                      onSetAvailability={handleSetAvailability}
+                                      isLocked={gamePhase !== 'availability'}
+                                  />
+                              </div>
+
+                              {playersWaiting.length > 0 && (
+                                  <div>
+                                      <Separator className="my-4"/>
+                                      <h3 className="text-lg font-semibold flex items-center gap-2 mb-2 text-amber-500">
+                                          <Clock /> Waiting List ({playersWaiting.length})
+                                      </h3>
+                                      <PlayerLeaderboard
+                                          players={playersWaiting}
+                                          onSetAvailability={handleSetAvailability}
+                                          isLocked={gamePhase !== 'availability'}
+                                      />
+                                  </div>
+                              )}
+                              
+                              <div>
+                                  <Separator className="my-4"/>
+                                  <h3 className="text-lg font-semibold flex items-center gap-2 mb-2 text-muted-foreground">
+                                      Undecided / Out
+                                  </h3>
+                                  <PlayerLeaderboard
+                                      players={otherPlayers}
+                                      onSetAvailability={handleSetAvailability}
+                                      isLocked={gamePhase !== 'availability'}
+                                  />
+                              </div>
+                        </div>
+                    </CardContent>
+                  </Card>
+                )}
+                 {/* Teams Display */}
+                {gamePhase !== 'availability' && teams && (
+                  <TeamDisplay 
+                    teams={teams} 
+                    winner={winner} 
+                    penalties={penalties}
+                    onSetPenalty={handleSetPenalty}
+                    isLocked={gamePhase === 'results'}
+                  />
+                )}
+              </div>
+              <div className="space-y-6">
+                 {/* Right Column */}
+                <UpcomingGame />
+                <GameControls 
+                  onDraftTeams={handleDraftTeams}
+                  onRecordResult={handleRecordResult}
+                  onResetGame={handleResetGame}
+                  gamePhase={gamePhase}
+                  playersInCount={playersIn.length}
+                  scores={scores}
+                  setScores={setScores}
+                />
+                {gamePhase === 'results' && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2"><Award className="text-primary"/>Game Result</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-lg font-semibold">
+                        {winner === 'Draw' && 'The match was a draw.'}
+                        {winner === 'A' && 'Team A is the winner!'}
+                        {winner === 'B' && 'Team B is the winner!'}
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="standings">
             <LeagueStandings 
               players={sortedPlayers}
               onEditPlayer={handleOpenPlayerDialog}
               onDeletePlayer={handleDeletePlayer}
               onAddPlayer={() => handleOpenPlayerDialog(null)}
             />
+          </TabsContent>
+
+          <TabsContent value="history">
             <MatchHistory matches={matchHistory} />
-          </div>
-          
-          {/* Right Column */}
-          <div className="space-y-6">
-            <UpcomingGame />
-            
-            <GameControls 
-              onDraftTeams={handleDraftTeams}
-              onRecordResult={handleRecordResult}
-              onResetGame={handleResetGame}
-              gamePhase={gamePhase}
-              playersInCount={playersIn.length}
-              scores={scores}
-              setScores={setScores}
-            />
-
-            {gamePhase === 'availability' && (
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle className="flex items-center gap-2 font-headline">
-                        Set Availability
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="space-y-6">
-                          <div>
-                              <h3 className="text-lg font-semibold flex items-center gap-2 mb-2 text-green-500">
-                                  <Users /> Confirmed Players ({playersIn.length}/{MAX_PLAYERS_IN})
-                              </h3>
-                              <PlayerLeaderboard
-                                  players={playersIn}
-                                  onSetAvailability={handleSetAvailability}
-                                  isLocked={gamePhase !== 'availability'}
-                              />
-                          </div>
-
-                          {playersWaiting.length > 0 && (
-                              <div>
-                                  <Separator className="my-4"/>
-                                  <h3 className="text-lg font-semibold flex items-center gap-2 mb-2 text-amber-500">
-                                      <Clock /> Waiting List ({playersWaiting.length})
-                                  </h3>
-                                  <PlayerLeaderboard
-                                      players={playersWaiting}
-                                      onSetAvailability={handleSetAvailability}
-                                      isLocked={gamePhase !== 'availability'}
-                                  />
-                              </div>
-                          )}
-                          
-                          <div>
-                              <Separator className="my-4"/>
-                              <h3 className="text-lg font-semibold flex items-center gap-2 mb-2 text-muted-foreground">
-                                  Undecided / Out
-                              </h3>
-                              <PlayerLeaderboard
-                                  players={otherPlayers}
-                                  onSetAvailability={handleSetAvailability}
-                                  isLocked={gamePhase !== 'availability'}
-                              />
-                          </div>
-                    </div>
-                </CardContent>
-              </Card>
-            )}
-            
-            {gamePhase !== 'availability' && teams && (
-              <TeamDisplay 
-                teams={teams} 
-                winner={winner} 
-                penalties={penalties}
-                onSetPenalty={handleSetPenalty}
-                isLocked={gamePhase === 'results'}
-              />
-            )}
-
-            {gamePhase === 'results' && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2"><Award className="text-primary"/>Game Result</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-lg font-semibold">
-                    {winner === 'Draw' && 'The match was a draw.'}
-                    {winner === 'A' && 'Team A is the winner!'}
-                    {winner === 'B' && 'Team B is the winner!'}
-                  </p>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        </div>
+          </TabsContent>
+        </Tabs>
       </main>
       <PlayerDialog
         isOpen={isPlayerDialogOpen}
