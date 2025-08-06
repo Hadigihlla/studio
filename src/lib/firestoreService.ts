@@ -26,8 +26,7 @@ export const getPlayers = async (): Promise<Player[]> => {
 
 export const addPlayer = async (playerData: Omit<Player, 'id'>): Promise<Player> => {
     const docRef = await addDoc(playersCollection, playerData);
-    const newPlayer = { id: docRef.id, ...playerData, status: 'undecided', waitingTimestamp: null } as Player;
-    return newPlayer;
+    return { id: docRef.id, ...playerData };
 };
 
 export const updatePlayer = async (player: Player): Promise<void> => {
@@ -57,3 +56,5 @@ export const addMatch = async (matchData: Omit<Match, 'id'>): Promise<Match> => 
     const docRef = await addDoc(matchesCollection, matchData);
     return { id: docRef.id, ...matchData };
 };
+
+    

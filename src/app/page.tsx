@@ -32,35 +32,25 @@ export default function Home() {
   const [lastToastInfo, setLastToastInfo] = useState<{ title: string, description: string, variant?: "default" | "destructive" } | null>(null);
   const [penalties, setPenalties] = useState<Record<string, Penalty>>({});
   const [scores, setScores] = useState<{ teamA: number; teamB: number }>({ teamA: 0, teamB: 0 });
-  const [isClient, setIsClient] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
 
   // Load state from Firestore on initial load
   useEffect(() => {
-    if (!isClient) return;
-
     const fetchInitialData = async () => {
         setIsLoading(true);
         try {
-            const [fetchedPlayers, fetchedMatches] = await Promise.all([getPlayers(), getMatches()]);
+            let fetchedPlayers = await getPlayers();
             
             if (fetchedPlayers.length === 0) {
               // If no players in DB, populate with initial data
-              const playersToCreate = initialPlayers.map(p => {
-                const { id, ...playerData } = p;
-                return addPlayer(playerData as Omit<Player, 'id'>);
-              });
-              await Promise.all(playersToCreate);
-              const populatedPlayers = await getPlayers();
-              setPlayers(populatedPlayers);
-            } else {
-              setPlayers(fetchedPlayers);
+              const creationPromises = initialPlayers.map(p => addPlayer(p));
+              await Promise.all(creationPromises);
+              fetchedPlayers = await getPlayers();
             }
             
+            const fetchedMatches = await getMatches();
+            
+            setPlayers(fetchedPlayers);
             setMatchHistory(fetchedMatches);
 
         } catch (error) {
@@ -70,12 +60,13 @@ export default function Home() {
                 title: 'Error Loading Data',
                 description: 'Could not fetch data from the database. Please check your connection and try again.'
             });
+        } finally {
+            setIsLoading(false);
         }
-        setIsLoading(false);
     };
     
     fetchInitialData();
-}, [isClient]);
+  }, []);
 
 
   const { toast } = useToast();
@@ -353,8 +344,8 @@ export default function Home() {
     const newMatchData: Omit<Match, 'id'> = {
       date: new Date().toISOString(),
       teams: {
-        teamA: teams.teamA.map(p => ({...p})),
-        teamB: teams.teamB.map(p => ({...p}))
+        teamA: teams.teamA.map(p => ({id: p.id, name: p.name})),
+        teamB: teams.teamB.map(p => ({id: p.id, name: p.name}))
       },
       result: result,
       scoreA: scores.teamA,
@@ -551,3 +542,5 @@ export default function Home() {
     </>
   );
 }
+
+    
