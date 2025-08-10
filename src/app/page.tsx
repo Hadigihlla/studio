@@ -65,20 +65,11 @@ export default function Home() {
 
   // Save state to localStorage whenever it changes
   useEffect(() => {
-    try {
-      if (players.length > 0) {
-        localStorage.setItem("players", JSON.stringify(players));
-      }
-      if (matchHistory.length > 0) {
-        localStorage.setItem("matchHistory", JSON.stringify(matchHistory));
-      }
-    } catch (error) {
-      console.error("Failed to save data to localStorage", error);
-      setLastToastInfo({
-        variant: 'destructive',
-        title: 'Error Saving Data',
-        description: 'Could not save your changes.'
-      });
+    if (players.length > 0) {
+      localStorage.setItem("players", JSON.stringify(players));
+    }
+    if (matchHistory.length >= 0) { // Also save when match history is empty
+      localStorage.setItem("matchHistory", JSON.stringify(matchHistory));
     }
   }, [players, matchHistory]);
 
@@ -374,6 +365,71 @@ export default function Home() {
     });
   };
 
+  const handleDeleteMatch = (matchId: string) => {
+    const matchToDelete = matchHistory.find(m => m.id === matchId);
+    if (!matchToDelete) return;
+
+    setPlayers(currentPlayers => {
+        let playersToUpdate = [...currentPlayers];
+
+        // Revert penalties
+        Object.entries(matchToDelete.penalties).forEach(([playerId, penalty]) => {
+            const playerIndex = playersToUpdate.findIndex(p => p.id === playerId);
+            if (playerIndex !== -1 && penalty) {
+                const deduction = penalty === 'late' ? 2 : 3;
+                playersToUpdate[playerIndex] = {
+                    ...playersToUpdate[playerIndex],
+                    points: playersToUpdate[playerIndex].points + deduction
+                };
+            }
+        });
+
+        // Revert game results
+        const allMatchPlayerIds = new Set([...matchToDelete.teams.teamA.map(p => p.id), ...matchToDelete.teams.teamB.map(p => p.id)]);
+        const playersInMatch = playersToUpdate.filter(p => allMatchPlayerIds.has(p.id));
+
+        const getResultForPlayer = (playerId: string): 'W' | 'D' | 'L' | null => {
+            const isInTeamA = matchToDelete.teams.teamA.some(p => p.id === playerId);
+            if (isInTeamA) {
+                return matchToDelete.result === 'A' ? 'W' : matchToDelete.result === 'B' ? 'L' : 'D';
+            }
+            const isInTeamB = matchToDelete.teams.teamB.some(p => p.id === playerId);
+            if (isInTeamB) {
+                return matchToDelete.result === 'B' ? 'W' : matchToDelete.result === 'A' ? 'L' : 'D';
+            }
+            return null;
+        };
+
+        playersInMatch.forEach(player => {
+            const playerResult = getResultForPlayer(player.id);
+            const wasNoShow = matchToDelete.penalties[player.id] === 'no-show';
+            
+            const playerIndex = playersToUpdate.findIndex(p => p.id === player.id);
+            if (playerIndex === -1 || !playerResult) return;
+
+            // Only revert stats if they participated
+            if (wasNoShow && (playerResult === 'W' || playerResult === 'D')) {
+                // No points were added, so no change needed for points
+            } else {
+                 playersToUpdate[playerIndex] = {
+                    ...playersToUpdate[playerIndex],
+                    points: playersToUpdate[playerIndex].points - (playerResult === 'W' ? 3 : playerResult === 'D' ? 2 : 0),
+                    matchesPlayed: playersToUpdate[playerIndex].matchesPlayed - 1,
+                    wins: playersToUpdate[playerIndex].wins - (playerResult === 'W' ? 1 : 0),
+                    draws: playersToUpdate[playerIndex].draws - (playerResult === 'D' ? 1 : 0),
+                    losses: playersToUpdate[playerIndex].losses - (playerResult === 'L' ? 1 : 0),
+                    form: playersToUpdate[playerIndex].form.slice(1), // This is a simplification; true form reversal is complex
+                 };
+            }
+        });
+
+        return playersToUpdate;
+    });
+
+    setMatchHistory(currentHistory => currentHistory.filter(m => m.id !== matchId));
+    setLastToastInfo({ title: "Match Deleted", description: "The match has been removed and player stats have been reverted." });
+  };
+
   if (isLoading) {
     return (
         <div className="flex justify-center items-center h-screen">
@@ -505,7 +561,7 @@ export default function Home() {
           </TabsContent>
 
           <TabsContent value="history">
-            <MatchHistory matches={matchHistory} players={players} />
+            <MatchHistory matches={matchHistory} players={players} onDeleteMatch={handleDeleteMatch} />
           </TabsContent>
         </Tabs>
       </main>
@@ -518,5 +574,3 @@ export default function Home() {
     </>
   );
 }
-
-    

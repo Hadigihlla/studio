@@ -8,12 +8,25 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
-import { Calendar, Shield, Users, Trophy, Clock, UserX } from "lucide-react";
+import { Calendar, Shield, Users, Trophy, Clock, UserX, Trash } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface MatchHistoryProps {
   matches: Match[];
   players: Player[];
+  onDeleteMatch: (matchId: string) => void;
 }
 
 const PlayerListItem = ({ player, penalty }: { player: Player | undefined, penalty: 'late' | 'no-show' | undefined }) => {
@@ -30,7 +43,7 @@ const PlayerListItem = ({ player, penalty }: { player: Player | undefined, penal
     );
 };
 
-export function MatchHistory({ matches, players }: MatchHistoryProps) {
+export function MatchHistory({ matches, players, onDeleteMatch }: MatchHistoryProps) {
   const getPlayerById = (id: string) => players.find(p => p.id === id);
 
   return (
@@ -69,20 +82,43 @@ export function MatchHistory({ matches, players }: MatchHistoryProps) {
                   </div>
                 </AccordionTrigger>
                 <AccordionContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <h4 className="font-semibold flex items-center gap-2 mb-2 text-blue-400"><Shield/>Team A</h4>
-                      <ul className="space-y-1 text-sm text-muted-foreground">
-                        {match.teams.teamA.map(p => <PlayerListItem key={p.id} player={getPlayerById(p.id)} penalty={match.penalties?.[p.id]} />)}
-                      </ul>
+                    <div className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                            <h4 className="font-semibold flex items-center gap-2 mb-2 text-blue-400"><Shield/>Team A</h4>
+                            <ul className="space-y-1 text-sm text-muted-foreground">
+                                {match.teams.teamA.map(p => <PlayerListItem key={p.id} player={getPlayerById(p.id)} penalty={match.penalties?.[p.id]} />)}
+                            </ul>
+                            </div>
+                            <div>
+                                <h4 className="font-semibold flex items-center gap-2 mb-2 text-red-400"><Shield/>Team B</h4>
+                            <ul className="space-y-1 text-sm text-muted-foreground">
+                                {match.teams.teamB.map(p => <PlayerListItem key={p.id} player={getPlayerById(p.id)} penalty={match.penalties?.[p.id]} />)}
+                            </ul>
+                            </div>
+                        </div>
+                        <div className="flex justify-end">
+                            <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <Button variant="destructive" size="sm">
+                                        <Trash className="mr-2" /> Delete Match
+                                    </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        This action cannot be undone. This will permanently delete this match record and revert all player stats associated with it.
+                                    </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => onDeleteMatch(match.id)} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                        </div>
                     </div>
-                    <div>
-                        <h4 className="font-semibold flex items-center gap-2 mb-2 text-red-400"><Shield/>Team B</h4>
-                      <ul className="space-y-1 text-sm text-muted-foreground">
-                        {match.teams.teamB.map(p => <PlayerListItem key={p.id} player={getPlayerById(p.id)} penalty={match.penalties?.[p.id]} />)}
-                      </ul>
-                    </div>
-                  </div>
                 </AccordionContent>
               </AccordionItem>
             ))}
