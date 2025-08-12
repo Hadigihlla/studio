@@ -82,30 +82,30 @@ export function PlayerLeaderboard({
                     {showAvailability && !isLocked && onSetAvailability ? (
                         <div className="flex justify-center items-center bg-muted p-1 rounded-full">
                            <Button
-                                size="sm"
+                                size="icon"
                                 variant={player.status === 'in' || player.status === 'waiting' ? 'default' : 'ghost'}
                                 className={cn(
-                                    "rounded-full flex-1 h-8 text-xs px-3",
+                                    "rounded-full h-8 w-8",
                                     player.status === 'in' || player.status === 'waiting'
                                         ? 'bg-green-500 hover:bg-green-600 text-white shadow-sm'
                                         : 'text-muted-foreground'
                                 )}
                                 onClick={() => onSetAvailability(player.id, "in")}
                             >
-                                <ThumbsUp className="mr-2 h-4 w-4"/> IN
+                                <ThumbsUp className="h-4 w-4"/>
                             </Button>
                              <Button
-                                size="sm"
+                                size="icon"
                                 variant={player.status === 'out' ? 'default' : 'ghost'}
                                 className={cn(
-                                    "rounded-full flex-1 h-8 text-xs px-3",
+                                    "rounded-full h-8 w-8",
                                     player.status === 'out'
                                         ? 'bg-red-500 hover:bg-red-600 text-white shadow-sm'
                                         : 'text-muted-foreground'
                                 )}
                                 onClick={() => onSetAvailability(player.id, "out")}
                             >
-                                <ThumbsDown className="mr-2 h-4 w-4"/> OUT
+                                <ThumbsDown className="h-4 w-4"/>
                             </Button>
                         </div>
                     ) : showManualDraftControls ? (
