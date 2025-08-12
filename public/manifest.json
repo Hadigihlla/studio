@@ -1,10 +1,10 @@
 {
-  "name": "HIRAFUS LEAGUE",
-  "short_name": "Hira-League",
-  "description": "Weekly Football Team Selections & Leaderboard",
-  "start_url": "/",
+  "name": "Hirafus League",
+  "short_name": "Hirafus League",
+  "start_url": ".",
   "display": "standalone",
   "background_color": "#0a1024",
+  "description": "Weekly Football Team Selections & Leaderboard",
   "theme_color": "#0a1024",
   "icons": [
     {
