@@ -10,7 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Clock, ThumbsUp, ThumbsDown, X } from "lucide-react";
+import { Clock, X } from "lucide-react";
 import { Badge } from "../ui/badge";
 import { cn } from "@/lib/utils";
 
@@ -82,30 +82,30 @@ export function PlayerLeaderboard({
                     {showAvailability && !isLocked && onSetAvailability ? (
                         <div className="flex justify-center items-center bg-muted p-1 rounded-full">
                            <Button
-                                size="icon"
+                                size="sm"
                                 variant={player.status === 'in' || player.status === 'waiting' ? 'default' : 'ghost'}
                                 className={cn(
-                                    "rounded-full h-8 w-8",
+                                    "rounded-full h-8 w-12 font-semibold",
                                     player.status === 'in' || player.status === 'waiting'
                                         ? 'bg-green-500 hover:bg-green-600 text-white shadow-sm'
                                         : 'text-muted-foreground'
                                 )}
                                 onClick={() => onSetAvailability(player.id, "in")}
                             >
-                                <ThumbsUp className="h-4 w-4"/>
+                                IN
                             </Button>
                              <Button
-                                size="icon"
+                                size="sm"
                                 variant={player.status === 'out' ? 'default' : 'ghost'}
                                 className={cn(
-                                    "rounded-full h-8 w-8",
+                                    "rounded-full h-8 w-12 font-semibold",
                                     player.status === 'out'
                                         ? 'bg-red-500 hover:bg-red-600 text-white shadow-sm'
                                         : 'text-muted-foreground'
                                 )}
                                 onClick={() => onSetAvailability(player.id, "out")}
                             >
-                                <ThumbsDown className="h-4 w-4"/>
+                                OUT
                             </Button>
                         </div>
                     ) : showManualDraftControls ? (
