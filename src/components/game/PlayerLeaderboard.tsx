@@ -10,7 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { ThumbsUp, ThumbsDown, Clock } from "lucide-react";
+import { Clock, Check, X } from "lucide-react";
 import { Badge } from "../ui/badge";
 import { cn } from "@/lib/utils";
 
@@ -50,27 +50,32 @@ export function PlayerLeaderboard({ players, onSetAvailability, isLocked }: Play
                 </TableCell>
                 <TableCell className="text-center">
                     {!isLocked ? (
-                        <div className="flex justify-center gap-1">
-                            <Button
-                                size="icon"
-                                variant={player.status === 'in' || player.status === 'waiting' ? 'default' : 'outline'}
+                        <div className="flex justify-center items-center bg-muted p-1 rounded-full">
+                           <Button
+                                size="sm"
+                                variant={player.status === 'in' || player.status === 'waiting' ? 'default' : 'ghost'}
                                 className={cn(
-                                    "h-8 w-8",
+                                    "rounded-full flex-1 w-20 h-7 text-xs font-bold",
                                     player.status === 'in' || player.status === 'waiting'
-                                        ? 'bg-green-500 hover:bg-green-600 border-green-500 text-white' 
-                                        : 'text-green-500 border-green-500 hover:bg-green-500/10 hover:text-green-600'
+                                        ? 'bg-green-500 hover:bg-green-600 text-white shadow-sm'
+                                        : 'text-muted-foreground'
                                 )}
                                 onClick={() => onSetAvailability(player.id, "in")}
                             >
-                                <ThumbsUp className="h-4 w-4" />
+                                <Check className="mr-1 h-4 w-4"/> IN
                             </Button>
-                            <Button
-                                size="icon"
-                                variant={player.status === 'out' ? 'destructive' : 'outline'}
-                                className="h-8 w-8"
+                             <Button
+                                size="sm"
+                                variant={player.status === 'out' ? 'default' : 'ghost'}
+                                className={cn(
+                                    "rounded-full flex-1 w-20 h-7 text-xs font-bold",
+                                    player.status === 'out'
+                                        ? 'bg-red-500 hover:bg-red-600 text-white shadow-sm'
+                                        : 'text-muted-foreground'
+                                )}
                                 onClick={() => onSetAvailability(player.id, "out")}
                             >
-                                <ThumbsDown className="h-4 w-4" />
+                                <X className="mr-1 h-4 w-4"/> OUT
                             </Button>
                         </div>
                     ) : (
