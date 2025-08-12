@@ -34,15 +34,16 @@ export function PlayerLeaderboard({
   const showManualDraftControls = gamePhase === 'manual-draft' && onAssignPlayer;
 
   const getAssignTeamButtons = (player: Player) => {
+    if (!onAssignPlayer) return null;
     return (
       <div className="flex justify-center items-center gap-2">
-        <Button size="sm" variant="outline" className="text-blue-400 border-blue-400/50 hover:bg-blue-400/10 hover:text-blue-400" onClick={() => onAssignPlayer!(player.id, 'teamA')}>
+        <Button size="sm" variant="outline" className="text-blue-400 border-blue-400/50 hover:bg-blue-400/10 hover:text-blue-400" onClick={() => onAssignPlayer(player.id, 'teamA')}>
             A
         </Button>
-        <Button size="sm" variant="outline" className="text-red-400 border-red-400/50 hover:bg-red-400/10 hover:text-red-400" onClick={() => onAssignPlayer!(player.id, 'teamB')}>
+        <Button size="sm" variant="outline" className="text-red-400 border-red-400/50 hover:bg-red-400/10 hover:text-red-400" onClick={() => onAssignPlayer(player.id, 'teamB')}>
             B
         </Button>
-        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => onAssignPlayer!(player.id, null)}>
+        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => onAssignPlayer(player.id, null)}>
             <X className="h-4 w-4" />
         </Button>
       </div>
@@ -78,33 +79,33 @@ export function PlayerLeaderboard({
                   {player.points}
                 </TableCell>
                 <TableCell className="text-center">
-                    {showAvailability && !isLocked ? (
+                    {showAvailability && !isLocked && onSetAvailability ? (
                         <div className="flex justify-center items-center bg-muted p-1 rounded-full">
                            <Button
-                                size="icon"
+                                size="sm"
                                 variant={player.status === 'in' || player.status === 'waiting' ? 'default' : 'ghost'}
                                 className={cn(
-                                    "rounded-full flex-1 h-8 w-8",
+                                    "rounded-full flex-1 h-8 text-xs px-3",
                                     player.status === 'in' || player.status === 'waiting'
                                         ? 'bg-green-500 hover:bg-green-600 text-white shadow-sm'
                                         : 'text-muted-foreground'
                                 )}
                                 onClick={() => onSetAvailability(player.id, "in")}
                             >
-                                <ThumbsUp className="h-4 w-4"/>
+                                <ThumbsUp className="mr-2 h-4 w-4"/> IN
                             </Button>
                              <Button
-                                size="icon"
+                                size="sm"
                                 variant={player.status === 'out' ? 'default' : 'ghost'}
                                 className={cn(
-                                    "rounded-full flex-1 h-8 w-8",
+                                    "rounded-full flex-1 h-8 text-xs px-3",
                                     player.status === 'out'
                                         ? 'bg-red-500 hover:bg-red-600 text-white shadow-sm'
                                         : 'text-muted-foreground'
                                 )}
                                 onClick={() => onSetAvailability(player.id, "out")}
                             >
-                                <ThumbsDown className="h-4 w-4"/>
+                                <ThumbsDown className="mr-2 h-4 w-4"/> OUT
                             </Button>
                         </div>
                     ) : showManualDraftControls ? (
