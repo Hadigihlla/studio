@@ -17,7 +17,6 @@ import { cn } from "@/lib/utils";
 interface PlayerLeaderboardProps {
   players: Player[];
   onSetAvailability?: (playerId: string, status: PlayerStatus) => void;
-  isLocked?: boolean;
   gamePhase?: "availability" | "teams" | "results" | "manual-draft";
   onAssignPlayer?: (playerId: string, team: 'teamA' | 'teamB' | null) => void;
 }
@@ -25,11 +24,11 @@ interface PlayerLeaderboardProps {
 export function PlayerLeaderboard({ 
   players, 
   onSetAvailability, 
-  isLocked, 
   gamePhase,
   onAssignPlayer
 }: PlayerLeaderboardProps) {
 
+  const isLocked = gamePhase !== 'availability';
   const showAvailability = gamePhase === 'availability' && onSetAvailability;
   const showManualDraftControls = gamePhase === 'manual-draft' && onAssignPlayer;
 

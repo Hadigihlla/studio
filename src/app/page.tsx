@@ -540,7 +540,6 @@ export default function Home() {
                                   <PlayerLeaderboard
                                       players={playersIn}
                                       onSetAvailability={handleSetAvailability}
-                                      isLocked={gamePhase !== 'availability'}
                                       gamePhase={gamePhase}
                                   />
                               </div>
@@ -554,7 +553,6 @@ export default function Home() {
                                       <PlayerLeaderboard
                                           players={playersWaiting}
                                           onSetAvailability={handleSetAvailability}
-                                          isLocked={gamePhase !== 'availability'}
                                           gamePhase={gamePhase}
                                       />
                                   </div>
@@ -568,7 +566,6 @@ export default function Home() {
                                   <PlayerLeaderboard
                                       players={otherPlayers}
                                       onSetAvailability={handleSetAvailability}
-                                      isLocked={gamePhase !== 'availability'}
                                       gamePhase={gamePhase}
                                   />
                               </div>
