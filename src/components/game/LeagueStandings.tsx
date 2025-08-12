@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef } from "react";
 import type { Player } from "@/types";
 import {
   Table,
@@ -10,7 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Star, Edit, Trash, MoreVertical, Plus, Trophy } from "lucide-react";
+import { Star, Edit, Trash, MoreVertical, Plus, Trophy, Printer } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,6 +37,7 @@ import {
     TooltipTrigger,
   } from "@/components/ui/tooltip";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import html2canvas from "html2canvas";
 
 interface LeagueStandingsProps {
   players: Player[];
@@ -63,6 +65,7 @@ const FormIndicator = ({ result }: { result: 'W' | 'D' | 'L'}) => {
 }
 
 export function LeagueStandings({ players, onEditPlayer, onDeletePlayer, onAddPlayer }: LeagueStandingsProps) {
+  const tableRef = useRef<HTMLTableElement>(null);
 
   const getRankContent = (rank: number) => {
     const rankNumber = <span className="font-mono text-sm">{rank}</span>;
@@ -80,6 +83,21 @@ export function LeagueStandings({ players, onEditPlayer, onDeletePlayer, onAddPl
     );
   }
 
+  const handlePrint = () => {
+    const table = tableRef.current;
+    if (table) {
+        html2canvas(table, {
+            useCORS: true,
+            backgroundColor: '#020817', // Match dark theme background
+        }).then(canvas => {
+            const link = document.createElement('a');
+            link.download = 'league-standings.jpg';
+            link.href = canvas.toDataURL('image/jpeg', 0.9);
+            link.click();
+        });
+    }
+  };
+
   return (
     <Card>
         <CardHeader className="flex flex-row items-center justify-between">
@@ -87,13 +105,18 @@ export function LeagueStandings({ players, onEditPlayer, onDeletePlayer, onAddPl
                 <Trophy className="text-primary"/>
                 League Standings
             </CardTitle>
-            <Button onClick={onAddPlayer} size="sm">
-                <Plus className="mr-2" /> Add Player
-            </Button>
+            <div className="flex gap-2">
+                <Button onClick={handlePrint} variant="outline" size="sm">
+                    <Printer className="mr-2" /> Print
+                </Button>
+                <Button onClick={onAddPlayer} size="sm">
+                    <Plus className="mr-2" /> Add Player
+                </Button>
+            </div>
         </CardHeader>
         <CardContent>
             <div className="w-full overflow-auto">
-                <Table>
+                <Table ref={tableRef}>
                 <TableHeader>
                     <TableRow>
                     <TableHead className="w-[50px] text-center">Rank</TableHead>
