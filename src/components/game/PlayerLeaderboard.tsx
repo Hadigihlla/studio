@@ -62,7 +62,7 @@ export function PlayerLeaderboard({ players, onSetAvailability, isLocked }: Play
                                 )}
                                 onClick={() => onSetAvailability(player.id, "in")}
                             >
-                                <Check className="mr-1 h-4 w-4"/> IN
+                                <Check className="mr-1 h-3 w-3"/> IN
                             </Button>
                              <Button
                                 size="sm"
@@ -75,7 +75,7 @@ export function PlayerLeaderboard({ players, onSetAvailability, isLocked }: Play
                                 )}
                                 onClick={() => onSetAvailability(player.id, "out")}
                             >
-                                <X className="mr-1 h-4 w-4"/> OUT
+                                <X className="mr-1 h-3 w-3"/> OUT
                             </Button>
                         </div>
                     ) : (
