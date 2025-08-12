@@ -7,17 +7,17 @@ import { UpcomingGame } from "@/components/game/UpcomingGame";
 import { PlayerLeaderboard } from "@/components/game/PlayerLeaderboard";
 import { GameControls } from "@/components/game/GameControls";
 import { TeamDisplay } from "@/components/game/TeamDisplay";
+import { ManualDraft } from "@/components/game/ManualDraft";
 import { Confetti } from "@/components/game/Confetti";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Award, Users, Clock, Edit } from "lucide-react";
+import { Award, Users, Clock } from "lucide-react";
 import { MatchHistory } from "@/components/game/MatchHistory";
 import { PlayerDialog } from "@/components/game/PlayerDialog";
 import { Separator } from "@/components/ui/separator";
 import { LeagueStandings } from "@/components/game/LeagueStandings";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { initialPlayers } from "@/lib/initial-players";
-import { Button } from "@/components/ui/button";
 
 const MAX_PLAYERS_IN = 14;
 
@@ -167,8 +167,8 @@ export default function Home() {
         if (!targetPlayer) return currentPlayers;
 
         let newPlayers = [...currentPlayers];
-        let toastTitle = "";
-        let toastDescription = "";
+        let toastInfo: { title: string; description: string } | null = null;
+
 
         const updatePlayerStatus = (id: string, status: PlayerStatus) => {
             const timestamp = status === 'waiting' ? Date.now() : null;
@@ -179,19 +179,23 @@ export default function Home() {
         if (newStatus === 'in') {
             if (playersInCount < MAX_PLAYERS_IN) {
                 newPlayers = updatePlayerStatus(playerId, 'in');
-                toastTitle = "You're In!";
-                toastDescription = `${targetPlayer.name} is confirmed for the game.`
+                toastInfo = {
+                    title: "You're In!",
+                    description: `${targetPlayer.name} is confirmed for the game.`
+                }
             } else {
                 newPlayers = updatePlayerStatus(playerId, 'waiting');
-                toastTitle = "Waiting List";
-                toastDescription = `The game is full. ${targetPlayer.name} has been added to the waiting list.`;
+                toastInfo = {
+                    title: "Waiting List",
+                    description: `The game is full. ${targetPlayer.name} has been added to the waiting list.`
+                };
             }
         } 
         // Player wants to be OUT or UNDECIDED
         else if (newStatus === 'out' || newStatus === 'undecided') {
             const wasPlayerIn = targetPlayer.status === 'in';
             newPlayers = updatePlayerStatus(playerId, newStatus);
-            toastTitle = `Status updated for ${targetPlayer.name}.`;
+            toastInfo = { title: `Status updated for ${targetPlayer.name}.`, description: ""};
             
             if (wasPlayerIn) {
                 const waitingList = newPlayers
@@ -203,8 +207,15 @@ export default function Home() {
                     const promotedPlayer = newPlayers.find(p => p.id === nextPlayerInId);
                     if(promotedPlayer) {
                       newPlayers = newPlayers.map(p => p.id === nextPlayerInId ? { ...p, status: 'in', waitingTimestamp: null } : p);
-                      toastTitle = "Player Promoted";
-                      toastDescription = `${targetPlayer.name} is now out. ${promotedPlayer.name} has been moved from the waiting list to 'in'.`;
+                      toastInfo = {
+                          title: "Player Promoted",
+                          description: `${targetPlayer.name} is now out. ${promotedPlayer.name} has been moved from the waiting list to 'in'.`
+                      };
+                    }
+                } else {
+                    toastInfo = {
+                        title: "Player Out",
+                        description: `${targetPlayer.name} is now out.`
                     }
                 }
             }
@@ -213,8 +224,8 @@ export default function Home() {
              newPlayers = updatePlayerStatus(playerId, newStatus);
         }
         
-        if (toastTitle) {
-            setLastToastInfo({ title: toastTitle, description: toastDescription });
+        if (toastInfo) {
+            setLastToastInfo(toastInfo);
         }
 
 
@@ -262,28 +273,37 @@ export default function Home() {
     });
   };
 
-  const handleAssignPlayer = (playerId: string, team: 'teamA' | 'teamB') => {
+  const handleAssignPlayer = (playerId: string, team: 'teamA' | 'teamB' | null) => {
     const player = players.find(p => p.id === playerId);
     if (!player) return;
-
+  
     setManualTeams(currentTeams => {
-        // Remove from other team if exists
-        const otherTeam = team === 'teamA' ? 'teamB' : 'teamA';
-        const newOtherTeam = currentTeams[otherTeam].filter(p => p.id !== playerId);
-        
-        // Add to the new team if not already there
-        const newTargetTeam = [...currentTeams[team]];
-        if (!newTargetTeam.some(p => p.id === playerId)) {
-          newTargetTeam.push(player);
+      // Create new arrays for teams
+      let newTeamA = [...currentTeams.teamA];
+      let newTeamB = [...currentTeams.teamB];
+  
+      // Remove player from both teams first
+      newTeamA = newTeamA.filter(p => p.id !== playerId);
+      newTeamB = newTeamB.filter(p => p.id !== playerId);
+  
+      // Add to the selected team
+      if (team === 'teamA') {
+        if (!newTeamA.some(p => p.id === playerId)) {
+          newTeamA.push(player);
         }
-       
-        return {
-            ...currentTeams,
-            [team]: newTargetTeam,
-            [otherTeam]: newOtherTeam
-        };
+      } else if (team === 'teamB') {
+        if (!newTeamB.some(p => p.id === playerId)) {
+          newTeamB.push(player);
+        }
+      }
+  
+      return {
+        teamA: newTeamA,
+        teamB: newTeamB
+      };
     });
   };
+  
 
   const handleConfirmManualDraft = () => {
     setTeams(manualTeams);
@@ -421,7 +441,7 @@ export default function Home() {
         let playersToUpdate = [...currentPlayers];
 
         // Revert penalties
-        Object.entries(matchToDelete.penalties).forEach(([playerId, penalty]) => {
+        Object.entries(matchToDelete.penalties || {}).forEach(([playerId, penalty]) => {
             const playerIndex = playersToUpdate.findIndex(p => p.id === playerId);
             if (playerIndex !== -1 && penalty) {
                 const deduction = penalty === 'late' ? 2 : 3;
@@ -553,45 +573,12 @@ export default function Home() {
                 )}
                  {/* Manual Draft Section */}
                  {gamePhase === 'manual-draft' && (
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2 font-headline">
-                          <Edit /> Manual Draft
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="space-y-4">
-                               <h3 className="font-semibold text-lg text-blue-400">Team A ({manualTeams.teamA.length})</h3>
-                               <PlayerLeaderboard
-                                  players={manualTeams.teamA}
-                                  gamePhase={gamePhase}
-                                  onAssignPlayer={handleAssignPlayer}
-                                />
-                            </div>
-                             <div className="space-y-4">
-                                <h3 className="font-semibold text-lg text-red-400">Team B ({manualTeams.teamB.length})</h3>
-                                <PlayerLeaderboard
-                                    players={manualTeams.teamB}
-                                    gamePhase={gamePhase}
-                                    onAssignPlayer={handleAssignPlayer}
-                                />
-                            </div>
-                          </div>
-                          <Separator className="my-6" />
-                           <div>
-                            <h3 className="font-semibold text-lg text-muted-foreground mb-2">Unassigned Players ({unassignedPlayers.length})</h3>
-                            <PlayerLeaderboard
-                                players={unassignedPlayers}
-                                gamePhase={gamePhase}
-                                onAssignPlayer={handleAssignPlayer}
-                            />
-                           </div>
-                           <div className="mt-6 flex justify-end">
-                            <Button onClick={handleConfirmManualDraft}>Confirm Teams</Button>
-                           </div>
-                      </CardContent>
-                    </Card>
+                    <ManualDraft
+                        manualTeams={manualTeams}
+                        unassignedPlayers={unassignedPlayers}
+                        onAssignPlayer={handleAssignPlayer}
+                        onConfirmDraft={handleConfirmManualDraft}
+                    />
                  )}
                  {/* Teams Display */}
                 {gamePhase === 'teams' && teams && (

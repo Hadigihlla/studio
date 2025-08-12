@@ -60,7 +60,7 @@ const PenaltyIcons = ({
             </Button>
           </TooltipTrigger>
           <TooltipContent>
-            <p>Mark as Late</p>
+            <p>Mark as Late (-2 Pts)</p>
           </TooltipContent>
         </Tooltip>
         <Tooltip>
@@ -78,7 +78,7 @@ const PenaltyIcons = ({
             </Button>
           </TooltipTrigger>
           <TooltipContent>
-            <p>Mark as No-Show</p>
+            <p>Mark as No-Show (-3 Pts)</p>
           </TooltipContent>
         </Tooltip>
       </div>
@@ -108,13 +108,14 @@ const TeamCard = ({
   <Card className={cn(
       "transition-all duration-300",
       isWinner && !isDraw && "border-primary ring-2 ring-primary bg-primary/10",
-      isDraw && "border-accent ring-2 ring-accent bg-accent/10"
+      isDraw && "border-yellow-400/50 ring-2 ring-yellow-400/50 bg-yellow-400/10"
     )}>
     <CardHeader>
       <CardTitle className={cn("flex items-center gap-2 font-headline", titleColor)}>
         <Shield />
         {title}
-        {(isWinner || isDraw) && <Trophy className={cn("w-6 h-6", isDraw ? "text-accent" : "text-primary")} />}
+        {isWinner && !isDraw && <Trophy className="w-6 h-6 text-primary" />}
+        {isDraw && <Trophy className="w-6 h-6 text-yellow-400" />}
       </CardTitle>
     </CardHeader>
     <CardContent className="space-y-2">
