@@ -16,11 +16,22 @@ import { cn } from "@/lib/utils";
 
 interface PlayerLeaderboardProps {
   players: Player[];
-  onSetAvailability: (playerId: string, status: PlayerStatus) => void;
-  isLocked: boolean;
+  onSetAvailability?: (playerId: string, status: PlayerStatus) => void;
+  isLocked?: boolean;
+  gamePhase?: "availability" | "teams" | "results" | "manual-draft";
+  onAssignPlayer?: (playerId: string, team: 'teamA' | 'teamB') => void;
 }
 
-export function PlayerLeaderboard({ players, onSetAvailability, isLocked }: PlayerLeaderboardProps) {
+export function PlayerLeaderboard({ 
+  players, 
+  onSetAvailability, 
+  isLocked, 
+  gamePhase,
+  onAssignPlayer
+}: PlayerLeaderboardProps) {
+
+  const showAvailability = gamePhase === 'availability' && onSetAvailability;
+  const showManualDraftControls = gamePhase === 'manual-draft' && onAssignPlayer;
 
   return (
       <div className="w-full overflow-auto">
@@ -29,7 +40,9 @@ export function PlayerLeaderboard({ players, onSetAvailability, isLocked }: Play
             <TableRow>
               <TableHead>Player</TableHead>
               <TableHead className="text-center">Points</TableHead>
-              <TableHead className="text-center">Availability</TableHead>
+              <TableHead className="text-center">
+                {showManualDraftControls ? 'Assign Team' : 'Availability'}
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -49,7 +62,7 @@ export function PlayerLeaderboard({ players, onSetAvailability, isLocked }: Play
                   {player.points}
                 </TableCell>
                 <TableCell className="text-center">
-                    {!isLocked ? (
+                    {showAvailability && !isLocked ? (
                         <div className="flex justify-center items-center bg-muted p-1 rounded-full">
                            <Button
                                 size="icon"
@@ -76,6 +89,15 @@ export function PlayerLeaderboard({ players, onSetAvailability, isLocked }: Play
                                 onClick={() => onSetAvailability(player.id, "out")}
                             >
                                 <ThumbsDown className="h-4 w-4"/>
+                            </Button>
+                        </div>
+                    ) : showManualDraftControls ? (
+                       <div className="flex justify-center items-center gap-2">
+                            <Button size="sm" variant="outline" className="text-blue-400 border-blue-400/50 hover:bg-blue-400/10 hover:text-blue-400" onClick={() => onAssignPlayer(player.id, 'teamA')}>
+                                A
+                            </Button>
+                            <Button size="sm" variant="outline" className="text-red-400 border-red-400/50 hover:bg-red-400/10 hover:text-red-400" onClick={() => onAssignPlayer(player.id, 'teamB')}>
+                                B
                             </Button>
                         </div>
                     ) : (

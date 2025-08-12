@@ -10,20 +10,22 @@ import { TeamDisplay } from "@/components/game/TeamDisplay";
 import { Confetti } from "@/components/game/Confetti";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Award, Users, Clock } from "lucide-react";
+import { Award, Users, Clock, Edit } from "lucide-react";
 import { MatchHistory } from "@/components/game/MatchHistory";
 import { PlayerDialog } from "@/components/game/PlayerDialog";
 import { Separator } from "@/components/ui/separator";
 import { LeagueStandings } from "@/components/game/LeagueStandings";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { initialPlayers } from "@/lib/initial-players";
+import { Button } from "@/components/ui/button";
 
 const MAX_PLAYERS_IN = 14;
 
 export default function Home() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [teams, setTeams] = useState<Team | null>(null);
-  const [gamePhase, setGamePhase] = useState<"availability" | "teams" | "results">("availability");
+  const [manualTeams, setManualTeams] = useState<Team>({ teamA: [], teamB: [] });
+  const [gamePhase, setGamePhase] = useState<"availability" | "teams" | "results" | "manual-draft">("availability");
   const [winner, setWinner] = useState<Result | null>(null);
   const [matchHistory, setMatchHistory] = useState<Match[]>([]);
   const [isPlayerDialogOpen, setIsPlayerDialogOpen] = useState(false);
@@ -94,6 +96,12 @@ export default function Home() {
         .sort((a, b) => (a.waitingTimestamp || 0) - (b.waitingTimestamp || 0));
     }, [sortedPlayers]);
   const otherPlayers = useMemo(() => sortedPlayers.filter(p => p.status !== 'in' && p.status !== 'waiting'), [sortedPlayers]);
+  
+  const unassignedPlayers = useMemo(() => {
+    if (gamePhase !== 'manual-draft') return [];
+    const assignedIds = new Set([...manualTeams.teamA.map(p => p.id), ...manualTeams.teamB.map(p => p.id)]);
+    return playersIn.filter(p => !assignedIds.has(p.id));
+  }, [playersIn, manualTeams, gamePhase]);
 
   const handleOpenPlayerDialog = (player: Player | null) => {
     setEditingPlayer(player);
@@ -192,11 +200,11 @@ export default function Home() {
 
                 if (waitingList.length > 0) {
                     const nextPlayerInId = waitingList[0].id;
-                    newPlayers = newPlayers.map(p => p.id === nextPlayerInId ? { ...p, status: 'in', waitingTimestamp: null } : p);
                     const promotedPlayer = newPlayers.find(p => p.id === nextPlayerInId);
                     if(promotedPlayer) {
+                      newPlayers = newPlayers.map(p => p.id === nextPlayerInId ? { ...p, status: 'in', waitingTimestamp: null } : p);
                       toastTitle = "Player Promoted";
-                      toastDescription = `${promotedPlayer.name} has been moved from the waiting list to 'in'.`;
+                      toastDescription = `${targetPlayer.name} is now out. ${promotedPlayer.name} has been moved from the waiting list to 'in'.`;
                     }
                 }
             }
@@ -214,9 +222,8 @@ export default function Home() {
     });
 };
 
-  const handleDraftTeams = () => {
-    const rankedPlayersIn = playersIn.sort((a, b) => b.points - a.points);
-    if (rankedPlayersIn.length < 2) {
+  const handleDraftTeams = (method: "points" | "manual") => {
+    if (playersIn.length < 2) {
       setLastToastInfo({
         variant: "destructive",
         title: "Not Enough Players",
@@ -225,6 +232,17 @@ export default function Home() {
       return;
     }
 
+    if (method === "manual") {
+      setGamePhase("manual-draft");
+      setLastToastInfo({
+        title: "Manual Draft",
+        description: "Assign players to Team A or Team B."
+      });
+      return;
+    }
+
+    // Points-based draft
+    const rankedPlayersIn = [...playersIn].sort((a, b) => b.points - a.points);
     const teamA: Player[] = [];
     const teamB: Player[] = [];
 
@@ -239,10 +257,42 @@ export default function Home() {
     setTeams({ teamA, teamB });
     setGamePhase("teams");
     setLastToastInfo({
-      title: "Teams Drafted!",
+      title: "Teams Drafted by Points!",
       description: "Team A and Team B have been selected.",
     });
   };
+
+  const handleAssignPlayer = (playerId: string, team: 'teamA' | 'teamB') => {
+    const player = players.find(p => p.id === playerId);
+    if (!player) return;
+
+    setManualTeams(currentTeams => {
+        // Remove from other team if exists
+        const otherTeam = team === 'teamA' ? 'teamB' : 'teamA';
+        const newOtherTeam = currentTeams[otherTeam].filter(p => p.id !== playerId);
+        
+        // Add to the new team if not already there
+        const newTargetTeam = [...currentTeams[team]];
+        if (!newTargetTeam.some(p => p.id === playerId)) {
+          newTargetTeam.push(player);
+        }
+       
+        return {
+            ...currentTeams,
+            [team]: newTargetTeam,
+            [otherTeam]: newOtherTeam
+        };
+    });
+  };
+
+  const handleConfirmManualDraft = () => {
+    setTeams(manualTeams);
+    setGamePhase('teams');
+    setLastToastInfo({
+        title: "Manual Teams Confirmed!",
+        description: "The teams you selected have been locked in."
+    })
+  }
 
   const updatePlayerStats = (
     playersToUpdate: Player[],
@@ -339,6 +389,7 @@ export default function Home() {
   
   const handleResetGame = () => {
     setTeams(null);
+    setManualTeams({ teamA: [], teamB: [] });
     setGamePhase("availability");
     setWinner(null);
     setPenalties({});
@@ -389,14 +440,13 @@ export default function Home() {
                 return player;
             }
 
-            const playerResult = matchToDelete.teams.teamA.some(p => p.id === player.id)
+            const playerInTeamA = matchToDelete.teams.teamA.some(p => p.id === player.id);
+            const playerResult = playerInTeamA
                 ? (matchToDelete.result === 'A' ? 'W' : matchToDelete.result === 'B' ? 'L' : 'D')
                 : (matchToDelete.result === 'B' ? 'W' : matchToDelete.result === 'A' ? 'L' : 'D');
 
             const wasNoShow = matchToDelete.penalties?.[player.id] === 'no-show';
             
-            // For no-shows, points are not added for W/D, but they are for L.
-            // When deleting, we only need to revert points if they were actually changed.
             const shouldRevertPoints = !(wasNoShow && (playerResult === 'W' || playerResult === 'D'));
 
             const pointsReverted = shouldRevertPoints
@@ -501,8 +551,50 @@ export default function Home() {
                     </CardContent>
                   </Card>
                 )}
+                 {/* Manual Draft Section */}
+                 {gamePhase === 'manual-draft' && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2 font-headline">
+                          <Edit /> Manual Draft
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-4">
+                               <h3 className="font-semibold text-lg text-blue-400">Team A ({manualTeams.teamA.length})</h3>
+                               <PlayerLeaderboard
+                                  players={manualTeams.teamA}
+                                  gamePhase={gamePhase}
+                                  onAssignPlayer={handleAssignPlayer}
+                                />
+                            </div>
+                             <div className="space-y-4">
+                                <h3 className="font-semibold text-lg text-red-400">Team B ({manualTeams.teamB.length})</h3>
+                                <PlayerLeaderboard
+                                    players={manualTeams.teamB}
+                                    gamePhase={gamePhase}
+                                    onAssignPlayer={handleAssignPlayer}
+                                />
+                            </div>
+                          </div>
+                          <Separator className="my-6" />
+                           <div>
+                            <h3 className="font-semibold text-lg text-muted-foreground mb-2">Unassigned Players ({unassignedPlayers.length})</h3>
+                            <PlayerLeaderboard
+                                players={unassignedPlayers}
+                                gamePhase={gamePhase}
+                                onAssignPlayer={handleAssignPlayer}
+                            />
+                           </div>
+                           <div className="mt-6 flex justify-end">
+                            <Button onClick={handleConfirmManualDraft}>Confirm Teams</Button>
+                           </div>
+                      </CardContent>
+                    </Card>
+                 )}
                  {/* Teams Display */}
-                {gamePhase !== 'availability' && teams && (
+                {gamePhase === 'teams' && teams && (
                   <TeamDisplay 
                     teams={teams} 
                     winner={winner} 

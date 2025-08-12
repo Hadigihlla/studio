@@ -5,12 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Users, Swords, Trophy, RefreshCw } from "lucide-react";
 import { ScoreInput } from "./ScoreInput";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 
 interface GameControlsProps {
-  onDraftTeams: () => void;
+  onDraftTeams: (method: 'points' | 'manual') => void;
   onRecordResult: () => void;
   onResetGame: () => void;
-  gamePhase: "availability" | "teams" | "results";
+  gamePhase: "availability" | "teams" | "results" | "manual-draft";
   playersInCount: number;
   scores: { teamA: number; teamB: number };
   setScores: (scores: { teamA: number; teamB: number }) => void;
@@ -38,15 +39,22 @@ export function GameControls({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {gamePhase === "availability" && (
-          <Button
-            onClick={onDraftTeams}
-            className="w-full"
-            disabled={playersInCount < 2}
-          >
-            <Users className="mr-2 h-4 w-4" />
-            Draft Teams ({playersInCount} In)
-          </Button>
+        {(gamePhase === "availability" || gamePhase === "manual-draft") && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  className="w-full"
+                  disabled={playersInCount < 2 || gamePhase === 'manual-draft'}
+                >
+                  <Users className="mr-2 h-4 w-4" />
+                  Draft Teams ({playersInCount} In)
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">
+                <DropdownMenuItem onClick={() => onDraftTeams('points')}>Draft by Points</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onDraftTeams('manual')}>Draft Manually</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
         )}
 
         {gamePhase === "teams" && (
