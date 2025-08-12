@@ -91,6 +91,7 @@ const TeamCard = ({
   title,
   titleColor,
   isWinner,
+  isDraw,
   penalties,
   onSetPenalty,
   isLocked,
@@ -99,16 +100,21 @@ const TeamCard = ({
   title: string;
   titleColor: string;
   isWinner: boolean;
+  isDraw: boolean;
   penalties: Record<string, Penalty>;
   onSetPenalty: (playerId: string, penalty: Penalty) => void;
   isLocked: boolean;
 }) => (
-  <Card className={cn(isWinner && "border-accent ring-2 ring-accent bg-accent/10", "transition-all duration-300")}>
+  <Card className={cn(
+      "transition-all duration-300",
+      isWinner && !isDraw && "border-primary ring-2 ring-primary bg-primary/10",
+      isDraw && "border-accent ring-2 ring-accent bg-accent/10"
+    )}>
     <CardHeader>
       <CardTitle className={cn("flex items-center gap-2 font-headline", titleColor)}>
         <Shield />
         {title}
-        {isWinner && <Trophy className="w-6 h-6 text-accent" />}
+        {(isWinner || isDraw) && <Trophy className={cn("w-6 h-6", isDraw ? "text-accent" : "text-primary")} />}
       </CardTitle>
     </CardHeader>
     <CardContent className="space-y-2">
@@ -141,13 +147,15 @@ const TeamCard = ({
 );
 
 export function TeamDisplay({ teams, winner, penalties, onSetPenalty, isLocked }: TeamDisplayProps) {
+  const isDraw = winner === "Draw";
   return (
     <div className="space-y-6">
       <TeamCard
         team={teams.teamA}
         title="Team A"
         titleColor="text-blue-400"
-        isWinner={winner === "A" || winner === "Draw"}
+        isWinner={winner === "A"}
+        isDraw={isDraw}
         penalties={penalties}
         onSetPenalty={onSetPenalty}
         isLocked={isLocked}
@@ -156,7 +164,8 @@ export function TeamDisplay({ teams, winner, penalties, onSetPenalty, isLocked }
         team={teams.teamB}
         title="Team B"
         titleColor="text-red-400"
-        isWinner={winner === "B" || winner === "Draw"}
+        isWinner={winner === "B"}
+        isDraw={isDraw}
         penalties={penalties}
         onSetPenalty={onSetPenalty}
         isLocked={isLocked}

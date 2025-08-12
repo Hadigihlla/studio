@@ -65,13 +65,11 @@ export default function Home() {
 
   // Save state to localStorage whenever it changes
   useEffect(() => {
-    if (players.length > 0) {
-      localStorage.setItem("players", JSON.stringify(players));
+    if (!isLoading) {
+        localStorage.setItem("players", JSON.stringify(players));
+        localStorage.setItem("matchHistory", JSON.stringify(matchHistory));
     }
-    if (matchHistory.length >= 0) { // Also save when match history is empty
-      localStorage.setItem("matchHistory", JSON.stringify(matchHistory));
-    }
-  }, [players, matchHistory]);
+  }, [players, matchHistory, isLoading]);
 
 
   const { toast } = useToast();
@@ -161,8 +159,8 @@ export default function Home() {
         if (!targetPlayer) return currentPlayers;
 
         let newPlayers = [...currentPlayers];
-        let primaryToast: { title: string, description: string, variant?: "default" | "destructive" } | null = null;
-        let secondaryToast: { title: string, description: string, variant?: "default" | "destructive" } | null = null;
+        let toastTitle = "";
+        let toastDescription = "";
 
         const updatePlayerStatus = (id: string, status: PlayerStatus) => {
             const timestamp = status === 'waiting' ? Date.now() : null;
@@ -173,16 +171,19 @@ export default function Home() {
         if (newStatus === 'in') {
             if (playersInCount < MAX_PLAYERS_IN) {
                 newPlayers = updatePlayerStatus(playerId, 'in');
-                primaryToast = { title: "You're In!", description: `${targetPlayer.name} is confirmed for the game.` };
+                toastTitle = "You're In!";
+                toastDescription = `${targetPlayer.name} is confirmed for the game.`
             } else {
                 newPlayers = updatePlayerStatus(playerId, 'waiting');
-                primaryToast = { title: "Waiting List", description: `The game is full. ${targetPlayer.name} has been added to the waiting list.` };
+                toastTitle = "Waiting List";
+                toastDescription = `The game is full. ${targetPlayer.name} has been added to the waiting list.`;
             }
         } 
         // Player wants to be OUT or UNDECIDED
         else if (newStatus === 'out' || newStatus === 'undecided') {
             const wasPlayerIn = targetPlayer.status === 'in';
             newPlayers = updatePlayerStatus(playerId, newStatus);
+            toastTitle = `Status updated for ${targetPlayer.name}.`;
             
             if (wasPlayerIn) {
                 const waitingList = newPlayers
@@ -194,7 +195,8 @@ export default function Home() {
                     newPlayers = newPlayers.map(p => p.id === nextPlayerInId ? { ...p, status: 'in', waitingTimestamp: null } : p);
                     const promotedPlayer = newPlayers.find(p => p.id === nextPlayerInId);
                     if(promotedPlayer) {
-                      secondaryToast = { title: "Player Promoted", description: `${promotedPlayer.name} has been moved from the waiting list to 'in'.`};
+                      toastTitle = "Player Promoted";
+                      toastDescription = `${promotedPlayer.name} has been moved from the waiting list to 'in'.`;
                     }
                 }
             }
@@ -203,13 +205,8 @@ export default function Home() {
              newPlayers = updatePlayerStatus(playerId, newStatus);
         }
         
-        if (primaryToast) {
-            setLastToastInfo(primaryToast);
-        }
-        if (secondaryToast) {
-            // This is a simplification; handling multiple toasts would require a queue.
-            // For now, secondary toast will overwrite primary if it exists.
-             setTimeout(() => setLastToastInfo(secondaryToast), 100);
+        if (toastTitle) {
+            setLastToastInfo({ title: toastTitle, description: toastDescription });
         }
 
 
@@ -386,41 +383,35 @@ export default function Home() {
 
         // Revert game results
         const allMatchPlayerIds = new Set([...matchToDelete.teams.teamA.map(p => p.id), ...matchToDelete.teams.teamB.map(p => p.id)]);
-        const playersInMatch = playersToUpdate.filter(p => allMatchPlayerIds.has(p.id));
 
-        const getResultForPlayer = (playerId: string): 'W' | 'D' | 'L' | null => {
-            const isInTeamA = matchToDelete.teams.teamA.some(p => p.id === playerId);
-            if (isInTeamA) {
-                return matchToDelete.result === 'A' ? 'W' : matchToDelete.result === 'B' ? 'L' : 'D';
+        playersToUpdate = playersToUpdate.map(player => {
+            if (!allMatchPlayerIds.has(player.id)) {
+                return player;
             }
-            const isInTeamB = matchToDelete.teams.teamB.some(p => p.id === playerId);
-            if (isInTeamB) {
-                return matchToDelete.result === 'B' ? 'W' : matchToDelete.result === 'A' ? 'L' : 'D';
-            }
-            return null;
-        };
 
-        playersInMatch.forEach(player => {
-            const playerResult = getResultForPlayer(player.id);
-            const wasNoShow = matchToDelete.penalties[player.id] === 'no-show';
+            const playerResult = matchToDelete.teams.teamA.some(p => p.id === player.id)
+                ? (matchToDelete.result === 'A' ? 'W' : matchToDelete.result === 'B' ? 'L' : 'D')
+                : (matchToDelete.result === 'B' ? 'W' : matchToDelete.result === 'A' ? 'L' : 'D');
+
+            const wasNoShow = matchToDelete.penalties?.[player.id] === 'no-show';
             
-            const playerIndex = playersToUpdate.findIndex(p => p.id === player.id);
-            if (playerIndex === -1 || !playerResult) return;
+            // For no-shows, points are not added for W/D, but they are for L.
+            // When deleting, we only need to revert points if they were actually changed.
+            const shouldRevertPoints = !(wasNoShow && (playerResult === 'W' || playerResult === 'D'));
 
-            // Only revert stats if they participated
-            if (wasNoShow && (playerResult === 'W' || playerResult === 'D')) {
-                // No points were added, so no change needed for points
-            } else {
-                 playersToUpdate[playerIndex] = {
-                    ...playersToUpdate[playerIndex],
-                    points: playersToUpdate[playerIndex].points - (playerResult === 'W' ? 3 : playerResult === 'D' ? 2 : 0),
-                    matchesPlayed: playersToUpdate[playerIndex].matchesPlayed - 1,
-                    wins: playersToUpdate[playerIndex].wins - (playerResult === 'W' ? 1 : 0),
-                    draws: playersToUpdate[playerIndex].draws - (playerResult === 'D' ? 1 : 0),
-                    losses: playersToUpdate[playerIndex].losses - (playerResult === 'L' ? 1 : 0),
-                    form: playersToUpdate[playerIndex].form.slice(1), // This is a simplification; true form reversal is complex
-                 };
-            }
+            const pointsReverted = shouldRevertPoints
+                ? player.points - (playerResult === 'W' ? 3 : playerResult === 'D' ? 2 : 0)
+                : player.points;
+
+            return {
+                ...player,
+                points: pointsReverted,
+                matchesPlayed: player.matchesPlayed - 1,
+                wins: player.wins - (playerResult === 'W' ? 1 : 0),
+                draws: player.draws - (playerResult === 'D' ? 1 : 0),
+                losses: player.losses - (playerResult === 'L' ? 1 : 0),
+                form: player.form.slice(1), // This is a simplification
+            };
         });
 
         return playersToUpdate;
