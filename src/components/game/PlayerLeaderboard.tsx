@@ -34,20 +34,17 @@ export function PlayerLeaderboard({
   const showManualDraftControls = gamePhase === 'manual-draft' && onAssignPlayer;
 
   const getAssignTeamButtons = (player: Player) => {
-    const isUnassigned = !onAssignPlayer || player.status !== 'in'; // Simplified check
     return (
       <div className="flex justify-center items-center gap-2">
-        <Button size="sm" variant="outline" className="text-blue-400 border-blue-400/50 hover:bg-blue-400/10 hover:text-blue-400" onClick={() => onAssignPlayer(player.id, 'teamA')}>
+        <Button size="sm" variant="outline" className="text-blue-400 border-blue-400/50 hover:bg-blue-400/10 hover:text-blue-400" onClick={() => onAssignPlayer!(player.id, 'teamA')}>
             A
         </Button>
-        <Button size="sm" variant="outline" className="text-red-400 border-red-400/50 hover:bg-red-400/10 hover:text-red-400" onClick={() => onAssignPlayer(player.id, 'teamB')}>
+        <Button size="sm" variant="outline" className="text-red-400 border-red-400/50 hover:bg-red-400/10 hover:text-red-400" onClick={() => onAssignPlayer!(player.id, 'teamB')}>
             B
         </Button>
-        {!isUnassigned && (
-             <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => onAssignPlayer(player.id, null)}>
-                <X className="h-4 w-4" />
-            </Button>
-        )}
+        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => onAssignPlayer!(player.id, null)}>
+            <X className="h-4 w-4" />
+        </Button>
       </div>
     );
   }
