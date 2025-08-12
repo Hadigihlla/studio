@@ -10,7 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Clock, Check, X } from "lucide-react";
+import { Clock, ThumbsUp, ThumbsDown } from "lucide-react";
 import { Badge } from "../ui/badge";
 import { cn } from "@/lib/utils";
 
@@ -62,7 +62,7 @@ export function PlayerLeaderboard({ players, onSetAvailability, isLocked }: Play
                                 )}
                                 onClick={() => onSetAvailability(player.id, "in")}
                             >
-                                <Check className="mr-1 h-3 w-3"/> IN
+                                <ThumbsUp className="mr-1 h-3 w-3"/> IN
                             </Button>
                              <Button
                                 size="sm"
@@ -75,7 +75,7 @@ export function PlayerLeaderboard({ players, onSetAvailability, isLocked }: Play
                                 )}
                                 onClick={() => onSetAvailability(player.id, "out")}
                             >
-                                <X className="mr-1 h-3 w-3"/> OUT
+                                <ThumbsDown className="mr-1 h-3 w-3"/> OUT
                             </Button>
                         </div>
                     ) : (
