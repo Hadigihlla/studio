@@ -95,7 +95,7 @@ export default function Home() {
         .filter(p => p.status === 'waiting')
         .sort((a, b) => (a.waitingTimestamp || 0) - (b.waitingTimestamp || 0));
     }, [sortedPlayers]);
-  const otherPlayers = useMemo(() => sortedPlayers.filter(p => p.status !== 'in' && p.status !== 'waiting'), [sortedPlayers]);
+  const otherPlayers = useMemo(() => sortedPlayers.filter(p => p.status === 'undecided' || p.status === 'out'), [sortedPlayers]);
   
   const unassignedPlayers = useMemo(() => {
     if (gamePhase !== 'manual-draft') return [];
@@ -195,7 +195,6 @@ export default function Home() {
         else if (newStatus === 'out' || newStatus === 'undecided') {
             const wasPlayerIn = targetPlayer.status === 'in';
             newPlayers = updatePlayerStatus(playerId, newStatus);
-            toastInfo = { title: `Status updated for ${targetPlayer.name}.`, description: ""};
             
             if (wasPlayerIn) {
                 const waitingList = newPlayers
@@ -208,7 +207,7 @@ export default function Home() {
                     if(promotedPlayer) {
                       newPlayers = newPlayers.map(p => p.id === nextPlayerInId ? { ...p, status: 'in', waitingTimestamp: null } : p);
                       toastInfo = {
-                          title: "Player Promoted",
+                          title: "Player Promoted!",
                           description: `${targetPlayer.name} is now out. ${promotedPlayer.name} has been moved from the waiting list to 'in'.`
                       };
                     }
@@ -218,6 +217,8 @@ export default function Home() {
                         description: `${targetPlayer.name} is now out.`
                     }
                 }
+            } else {
+                 toastInfo = { title: `Status updated for ${targetPlayer.name}.`, description: ""};
             }
         } else {
              // For 'waiting' status (e.g. from undecided to waiting, though UI doesn't directly support this)
@@ -244,6 +245,7 @@ export default function Home() {
     }
 
     if (method === "manual") {
+      setManualTeams({ teamA: [], teamB: [] }); // Reset manual teams
       setGamePhase("manual-draft");
       setLastToastInfo({
         title: "Manual Draft",
@@ -539,6 +541,7 @@ export default function Home() {
                                       players={playersIn}
                                       onSetAvailability={handleSetAvailability}
                                       isLocked={gamePhase !== 'availability'}
+                                      gamePhase={gamePhase}
                                   />
                               </div>
 
@@ -552,6 +555,7 @@ export default function Home() {
                                           players={playersWaiting}
                                           onSetAvailability={handleSetAvailability}
                                           isLocked={gamePhase !== 'availability'}
+                                          gamePhase={gamePhase}
                                       />
                                   </div>
                               )}
@@ -565,6 +569,7 @@ export default function Home() {
                                       players={otherPlayers}
                                       onSetAvailability={handleSetAvailability}
                                       isLocked={gamePhase !== 'availability'}
+                                      gamePhase={gamePhase}
                                   />
                               </div>
                         </div>
