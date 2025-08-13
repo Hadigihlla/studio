@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -27,8 +28,10 @@ export function GameControls({
   setScores,
 }: GameControlsProps) {
   const handleScoreChange = (team: 'teamA' | 'teamB', value: number) => {
-    setScores({ ...scores, [team]: value < 0 ? 0 : value });
+    setScores({ ...scores, [team]: Math.max(0, value) });
   };
+
+  const isDraftingLocked = playersInCount < 2 || gamePhase === 'manual-draft';
 
   return (
     <Card>
@@ -39,13 +42,10 @@ export function GameControls({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {(gamePhase === "availability" || gamePhase === "manual-draft") && (
+        {gamePhase === "availability" && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button
-                  className="w-full"
-                  disabled={playersInCount < 2 || gamePhase === 'manual-draft'}
-                >
+                <Button className="w-full" disabled={isDraftingLocked}>
                   <Users className="mr-2 h-4 w-4" />
                   Draft Teams ({playersInCount} In)
                 </Button>
@@ -85,10 +85,10 @@ export function GameControls({
           </div>
         )}
 
-        {gamePhase === "results" && (
-          <Button onClick={onResetGame} className="w-full">
+        {(gamePhase === "results" || gamePhase === "manual-draft") && (
+          <Button onClick={onResetGame} className="w-full" variant={gamePhase === 'manual-draft' ? 'outline' : 'default'}>
             <RefreshCw className="mr-2 h-4 w-4" />
-            Start New Game
+            {gamePhase === 'manual-draft' ? 'Cancel Draft' : 'Start New Game'}
           </Button>
         )}
       </CardContent>

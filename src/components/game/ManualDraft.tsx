@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { Player, Team } from "@/types";
@@ -31,29 +32,35 @@ export function ManualDraft({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-4">
             <h3 className="font-semibold text-lg text-blue-400">Team A ({manualTeams.teamA.length})</h3>
-            <PlayerLeaderboard
-              players={manualTeams.teamA}
-              gamePhase="manual-draft"
-              onAssignPlayer={onAssignPlayer}
-            />
+            {manualTeams.teamA.length > 0 ? (
+                <PlayerLeaderboard
+                    players={manualTeams.teamA}
+                    gamePhase="manual-draft"
+                    onAssignPlayer={onAssignPlayer}
+                />
+            ) : <p className="text-muted-foreground text-center p-4">Assign players to Team A</p>}
           </div>
           <div className="space-y-4">
             <h3 className="font-semibold text-lg text-red-400">Team B ({manualTeams.teamB.length})</h3>
-            <PlayerLeaderboard
-              players={manualTeams.teamB}
-              gamePhase="manual-draft"
-              onAssignPlayer={onAssignPlayer}
-            />
+            {manualTeams.teamB.length > 0 ? (
+                <PlayerLeaderboard
+                    players={manualTeams.teamB}
+                    gamePhase="manual-draft"
+                    onAssignPlayer={onAssignPlayer}
+                />
+            ) : <p className="text-muted-foreground text-center p-4">Assign players to Team B</p>}
           </div>
         </div>
         <Separator className="my-6" />
         <div>
           <h3 className="font-semibold text-lg text-muted-foreground mb-2">Unassigned Players ({unassignedPlayers.length})</h3>
-          <PlayerLeaderboard
-            players={unassignedPlayers}
-            gamePhase="manual-draft"
-            onAssignPlayer={onAssignPlayer}
-          />
+           {unassignedPlayers.length > 0 ? (
+              <PlayerLeaderboard
+                players={unassignedPlayers}
+                gamePhase="manual-draft"
+                onAssignPlayer={onAssignPlayer}
+              />
+           ) : <p className="text-muted-foreground text-center p-4">All players have been assigned.</p>}
         </div>
         <div className="mt-6 flex justify-end">
           <Button onClick={onConfirmDraft}>Confirm Teams</Button>
