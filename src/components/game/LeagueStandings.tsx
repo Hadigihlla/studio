@@ -177,8 +177,8 @@ export function LeagueStandings({ players, onEditPlayer, onDeletePlayer, onAddPl
       <div className="printable-area" ref={printRef}>
         <Card className="printable-content">
             <CardHeader className="printable-header text-center">
-                <CardTitle className="printable-title text-2xl font-headline">Hirafus League</CardTitle>
-                <CardDescription className="printable-subtitle">League Standings</CardDescription>
+                <CardTitle className="printable-title text-3xl font-headline">Hirafus League</CardTitle>
+                <CardDescription className="printable-subtitle text-lg">League Standings</CardDescription>
             </CardHeader>
             <CardContent>
                  <Table>
@@ -205,13 +205,13 @@ export function LeagueStandings({ players, onEditPlayer, onDeletePlayer, onAddPl
                             </div>
                             </TableCell>
                             <TableCell>
-                                <div className="font-semibold">{player.name}</div>
+                                <div className="font-semibold text-lg">{player.name}</div>
                             </TableCell>
-                            <TableCell className="text-center font-mono">{player.matchesPlayed}</TableCell>
-                            <TableCell className="text-center font-mono">{player.wins}</TableCell>
-                            <TableCell className="text-center font-mono">{player.draws}</TableCell>
-                            <TableCell className="text-center font-mono">{player.losses}</TableCell>
-                            <TableCell className="text-center font-mono font-bold">
+                            <TableCell className="text-center font-mono text-base">{player.matchesPlayed}</TableCell>
+                            <TableCell className="text-center font-mono text-base">{player.wins}</TableCell>
+                            <TableCell className="text-center font-mono text-base">{player.draws}</TableCell>
+                            <TableCell className="text-center font-mono text-base">{player.losses}</TableCell>
+                            <TableCell className="text-center font-mono font-bold text-lg">
                                 {player.points}
                             </TableCell>
                         </TableRow>
