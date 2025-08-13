@@ -31,6 +31,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from "../ui/card";
+import { cn } from "@/lib/utils";
 
 interface LeagueStandingsProps {
   players: Player[];
@@ -182,7 +183,10 @@ export function LeagueStandings({ players, onEditPlayer, onDeletePlayer, onAddPl
                     </TableHeader>
                     <TableBody>
                         {players.map((player, index) => (
-                        <TableRow key={`print-${player.id}`}>
+                        <TableRow 
+                            key={`print-${player.id}`}
+                            className={cn(index < 7 && 'printable-top-7')}
+                        >
                             <TableCell className="font-medium text-center">
                             <div className="flex justify-center items-center h-full">
                                 {getRankContent(index + 1)}
