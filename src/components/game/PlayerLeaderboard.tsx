@@ -21,7 +21,7 @@ const AvailabilityControls = ({ player, onSetAvailability }: { player: Player, o
             size="sm"
             variant={player.status === 'in' || player.status === 'waiting' ? 'default' : 'ghost'}
             className={cn(
-                "rounded-full h-8 w-16 font-semibold", // Increased width
+                "rounded-full h-8 w-16 font-semibold", 
                 (player.status === 'in' || player.status === 'waiting') && 'bg-green-500 hover:bg-green-600 text-white shadow-sm'
             )}
             onClick={() => onSetAvailability(player.id, "in")}
@@ -32,7 +32,7 @@ const AvailabilityControls = ({ player, onSetAvailability }: { player: Player, o
             size="sm"
             variant={player.status === 'out' ? 'default' : 'ghost'}
             className={cn(
-                "rounded-full h-8 w-16 font-semibold", // Increased width
+                "rounded-full h-8 w-16 font-semibold", 
                 player.status === 'out' && 'bg-red-500 hover:bg-red-600 text-white shadow-sm'
             )}
             onClick={() => onSetAvailability(player.id, "out")}
