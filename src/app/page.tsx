@@ -62,7 +62,7 @@ export default function Home() {
     } finally {
         setIsLoading(false);
     }
-  }, []); // Empty dependency array ensures this runs only once on mount
+  }, [toast]);
 
   // Save state to localStorage whenever it changes, but not on initial load
   useEffect(() => {
@@ -203,12 +203,24 @@ export default function Home() {
       return;
     }
 
+    // Clone players to avoid direct mutation
     const rankedPlayersIn = [...playersIn].sort((a, b) => b.points - a.points);
     const teamA: Player[] = [];
     const teamB: Player[] = [];
 
-    rankedPlayersIn.forEach((player, index) => {
-      if (index % 2 === 0) teamA.push(player); else teamB.push(player);
+    // Serpent/snake draft logic
+    let teamATotal = 0;
+    let teamBTotal = 0;
+
+    rankedPlayersIn.forEach((player) => {
+        // Assign player to the team with the lower total points
+        if (teamATotal <= teamBTotal) {
+            teamA.push(player);
+            teamATotal += player.points;
+        } else {
+            teamB.push(player);
+            teamBTotal += player.points;
+        }
     });
 
     setTeams({ teamA, teamB });
@@ -221,9 +233,11 @@ export default function Home() {
     if (!playerToAssign) return;
 
     setManualTeams(currentTeams => {
-        let newTeamA = currentTeams.teamA.filter(p => p.id !== playerId);
-        let newTeamB = currentTeams.teamB.filter(p => p.id !== playerId);
+        // Create new arrays by filtering out the player from both teams first
+        const newTeamA = currentTeams.teamA.filter(p => p.id !== playerId);
+        const newTeamB = currentTeams.teamB.filter(p => p.id !== playerId);
 
+        // Add the player to the correct new team if specified
         if (team === 'teamA') newTeamA.push(playerToAssign);
         if (team === 'teamB') newTeamB.push(playerToAssign);
         
@@ -232,6 +246,16 @@ export default function Home() {
   };
 
   const handleConfirmManualDraft = () => {
+    // Prevent confirming if not all "in" players are assigned
+    if (unassignedPlayers.length > 0) {
+      toast({
+        variant: 'destructive',
+        title: "Unassigned Players",
+        description: `Please assign all ${playersIn.length} confirmed players to a team.`,
+      });
+      return;
+    }
+
     setTeams(manualTeams);
     setGamePhase('teams');
     toast({ title: "Manual Teams Confirmed!", description: "The teams you selected have been locked in." });
@@ -243,8 +267,10 @@ export default function Home() {
     setPlayers(prev => prev.map(p => {
         if (playerIdsToUpdate.has(p.id)) {
             const wasNoShow = penaltiesForMatch[p.id] === 'no-show';
-            const pointsGained = result === 'W' ? 3 : result === 'D' ? 2 : 0;
-            const shouldGetPoints = !wasNoShow || result === 'L';
+            const pointsGained = result === 'W' ? 3 : result === 'D' ? 2 : 1;
+            
+            // No-show players don't get points for a Win or Draw
+            const shouldGetPoints = !(wasNoShow && (result === 'W' || result === 'D'));
 
             return {
                 ...p,
@@ -268,15 +294,19 @@ export default function Home() {
     // Apply penalty point deductions
     const penaltyMessages: string[] = [];
     setPlayers(prevPlayers => {
-        return prevPlayers.map(player => {
-            const penalty = penalties[player.id];
-            if (penalty) {
+        let tempPlayers = [...prevPlayers];
+        Object.entries(penalties).forEach(([playerId, penalty]) => {
+            const playerIndex = tempPlayers.findIndex(p => p.id === playerId);
+            if (playerIndex > -1 && penalty) {
                 const deduction = penalty === 'late' ? 2 : 3;
-                penaltyMessages.push(`${player.name} -${deduction}pts`);
-                return { ...player, points: player.points - deduction };
+                penaltyMessages.push(`${tempPlayers[playerIndex].name} -${deduction}pts`);
+                tempPlayers[playerIndex] = {
+                    ...tempPlayers[playerIndex],
+                    points: tempPlayers[playerIndex].points - deduction
+                };
             }
-            return player;
         });
+        return tempPlayers;
     });
 
     const penaltyToastDescription = penaltyMessages.length > 0
@@ -345,48 +375,84 @@ export default function Home() {
     if (!matchToDelete) return;
 
     setPlayers(currentPlayers => {
-        let tempPlayers = [...currentPlayers];
+        let tempPlayers = JSON.parse(JSON.stringify(currentPlayers));
 
-        // 1. Revert penalty deductions
+        const allPlayerIdsInMatch = [
+            ...matchToDelete.teams.teamA.map(p => p.id),
+            ...matchToDelete.teams.teamB.map(p => p.id)
+        ];
+        const playerMap = new Map(tempPlayers.map((p: Player) => [p.id, p]));
+
+        // 1. Revert penalty deductions from the deleted match
         Object.entries(matchToDelete.penalties || {}).forEach(([playerId, penalty]) => {
-            const playerIndex = tempPlayers.findIndex(p => p.id === playerId);
-            if (playerIndex > -1 && penalty) {
+            const player = playerMap.get(playerId);
+            if (player && penalty) {
                 const deduction = penalty === 'late' ? 2 : 3;
-                tempPlayers[playerIndex].points += deduction;
+                player.points += deduction;
             }
         });
 
-        // 2. Revert game results
-        const teamAPlayerIds = new Set(matchToDelete.teams.teamA.map(p => p.id));
-        const teamBPlayerIds = new Set(matchToDelete.teams.teamB.map(p => p.id));
+        // 2. Revert game result stats from the deleted match
+        allPlayerIdsInMatch.forEach(playerId => {
+            const player = playerMap.get(playerId);
+            if (!player) return;
 
-        tempPlayers = tempPlayers.map(player => {
             let result: 'W' | 'D' | 'L' | null = null;
-            if (teamAPlayerIds.has(player.id)) {
+            const wasInTeamA = matchToDelete.teams.teamA.some(p => p.id === playerId);
+            const wasInTeamB = matchToDelete.teams.teamB.some(p => p.id === playerId);
+
+            if (wasInTeamA) {
                 result = matchToDelete.result === 'A' ? 'W' : matchToDelete.result === 'B' ? 'L' : 'D';
-            } else if (teamBPlayerIds.has(player.id)) {
+            } else if (wasInTeamB) {
                 result = matchToDelete.result === 'B' ? 'W' : matchToDelete.result === 'A' ? 'L' : 'D';
             }
 
             if (result) {
-                const wasNoShow = matchToDelete.penalties?.[player.id] === 'no-show';
-                const shouldRevertPoints = !(wasNoShow && (result === 'W' || result === 'D'));
-                const pointsToRevert = result === 'W' ? 3 : result === 'D' ? 2 : 0;
+                // Revert stats
+                player.matchesPlayed -= 1;
+                if (result === 'W') player.wins -= 1;
+                else if (result === 'D') player.draws -= 1;
+                else if (result === 'L') player.losses -= 1;
 
-                return {
-                    ...player,
-                    points: player.points - (shouldRevertPoints ? pointsToRevert : 0),
-                    matchesPlayed: player.matchesPlayed - 1,
-                    wins: player.wins - (result === 'W' ? 1 : 0),
-                    draws: player.draws - (result === 'D' ? 1 : 0),
-                    losses: player.losses - (result === 'L' ? 1 : 0),
-                    form: player.form.slice(1),
-                };
+                // Revert points, accounting for no-show penalties
+                const wasNoShow = matchToDelete.penalties?.[playerId] === 'no-show';
+                const shouldRevertPoints = !(wasNoShow && (result === 'W' || result === 'D'));
+
+                if (shouldRevertPoints) {
+                    const pointsToRevert = result === 'W' ? 3 : result === 'D' ? 2 : 1;
+                    player.points -= pointsToRevert;
+                }
+                
+                // This is complex: we need to find the correct form to remove.
+                // The form is an array of the last 5 results. If this match is one of them, it should be removed.
+                // However, we don't store which match corresponds to which form entry.
+                // The simplest correct approach is to rebuild the form from the remaining match history.
+            }
+        });
+        
+        let finalPlayers = Array.from(playerMap.values());
+
+        // 3. Rebuild form for affected players from remaining match history
+        const remainingMatches = matchHistory.filter(m => m.id !== matchId);
+        
+        finalPlayers = finalPlayers.map(player => {
+            if (allPlayerIdsInMatch.includes(player.id)) {
+                 const newForm: ('W' | 'D' | 'L')[] = [];
+                 remainingMatches.forEach(match => {
+                     let result: 'W' | 'D' | 'L' | null = null;
+                     if (match.teams.teamA.some(p => p.id === player.id)) {
+                         result = match.result === 'A' ? 'W' : match.result === 'B' ? 'L' : 'D';
+                     } else if (match.teams.teamB.some(p => p.id === player.id)) {
+                         result = match.result === 'B' ? 'W' : match.result === 'A' ? 'L' : 'D';
+                     }
+                     if(result) newForm.unshift(result);
+                 });
+                 player.form = newForm.slice(0, 5);
             }
             return player;
         });
 
-        return tempPlayers;
+        return finalPlayers;
     });
 
     setMatchHistory(currentHistory => currentHistory.filter(m => m.id !== matchId));
@@ -485,6 +551,7 @@ export default function Home() {
                   onResetGame={handleResetGame}
                   gamePhase={gamePhase}
                   playersInCount={playersIn.length}
+                  unassignedCount={unassignedPlayers.length}
                   scores={scores}
                   setScores={setScores}
                 />
@@ -516,7 +583,7 @@ export default function Home() {
           </TabsContent>
 
           <TabsContent value="history">
-            <MatchHistory matches={matchHistory} players={players} onDeleteMatch={handleDeleteMatch} />
+            <MatchHistory matches={matchHistory} onDeleteMatch={handleDeleteMatch} />
           </TabsContent>
         </Tabs>
       </main>

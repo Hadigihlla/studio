@@ -56,19 +56,6 @@ export function LeagueStandings({ players, onEditPlayer, onDeletePlayer, onAddPl
       </div>
     );
   };
-  
-    const getPrintableRankContent = (rank: number) => {
-    return (
-      <div
-        className={cn(
-          "flex items-center justify-center h-7 w-7 rounded-full font-mono font-bold",
-           rank <= 7 && "bg-green-500/20 text-green-400"
-        )}
-      >
-        {rank}
-      </div>
-    );
-  };
 
   const handleDownload = () => {
     if (printRef.current) {
@@ -210,9 +197,11 @@ export function LeagueStandings({ players, onEditPlayer, onDeletePlayer, onAddPl
                             className={cn(index < 7 && 'printable-top-7')}
                         >
                             <TableCell className="font-medium text-center">
-                            <div className="flex justify-center items-center h-full">
-                                {getPrintableRankContent(index + 1)}
-                            </div>
+                                <div className="flex justify-center items-center h-full">
+                                    <div className="flex items-center justify-center h-7 w-7 rounded-full font-mono font-bold">
+                                        {index + 1}
+                                    </div>
+                                </div>
                             </TableCell>
                             <TableCell>
                                 <div className="font-semibold text-lg">{player.name}</div>

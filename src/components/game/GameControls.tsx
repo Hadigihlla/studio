@@ -4,7 +4,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Users, Swords, Trophy, RefreshCw } from "lucide-react";
+import { Users, Swords, Trophy, RefreshCw, CheckCircle2 } from "lucide-react";
 import { ScoreInput } from "./ScoreInput";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 
@@ -14,6 +14,7 @@ interface GameControlsProps {
   onResetGame: () => void;
   gamePhase: "availability" | "teams" | "results" | "manual-draft";
   playersInCount: number;
+  unassignedCount: number; // For manual draft
   scores: { teamA: number; teamB: number };
   setScores: (scores: { teamA: number; teamB: number }) => void;
 }
@@ -24,6 +25,7 @@ export function GameControls({
   onResetGame,
   gamePhase,
   playersInCount,
+  unassignedCount,
   scores,
   setScores,
 }: GameControlsProps) {
@@ -31,7 +33,8 @@ export function GameControls({
     setScores({ ...scores, [team]: Math.max(0, value) });
   };
 
-  const isDraftingLocked = playersInCount < 2 || gamePhase === 'manual-draft';
+  const isDraftingLocked = playersInCount < 2 || gamePhase !== 'availability';
+  const isConfirmDraftLocked = gamePhase === 'manual-draft' && unassignedCount > 0;
 
   return (
     <Card>
@@ -50,11 +53,20 @@ export function GameControls({
                   Draft Teams ({playersInCount} In)
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">
-                <DropdownMenuItem onClick={() => onDraftTeams('points')}>Draft by Points</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onDraftTeams('manual')}>Draft Manually</DropdownMenuItem>
+              <DropdownMenuContent align="center" className="w-[--radix-dropdown-menu-trigger-width]">
+                <DropdownMenuItem onClick={() => onDraftTeams('points')} disabled={isDraftingLocked}>Draft by Points</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onDraftTeams('manual')} disabled={isDraftingLocked}>Draft Manually</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+        )}
+
+        {gamePhase === "manual-draft" && (
+          <div className="space-y-4">
+              <Button onClick={onResetGame} className="w-full" variant="outline">
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Cancel Draft
+              </Button>
+          </div>
         )}
 
         {gamePhase === "teams" && (
@@ -85,10 +97,10 @@ export function GameControls({
           </div>
         )}
 
-        {(gamePhase === "results" || gamePhase === "manual-draft") && (
-          <Button onClick={onResetGame} className="w-full" variant={gamePhase === 'manual-draft' ? 'outline' : 'default'}>
+        {gamePhase === "results" && (
+          <Button onClick={onResetGame} className="w-full">
             <RefreshCw className="mr-2 h-4 w-4" />
-            {gamePhase === 'manual-draft' ? 'Cancel Draft' : 'Start New Game'}
+            Start New Game
           </Button>
         )}
       </CardContent>
