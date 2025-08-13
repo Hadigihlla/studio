@@ -13,7 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Star, Edit, Trash, MoreVertical, Plus, Trophy, Download } from "lucide-react";
+import { Edit, Trash, MoreVertical, Plus, Trophy, Download } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -45,20 +45,30 @@ export function LeagueStandings({ players, onEditPlayer, onDeletePlayer, onAddPl
   const printRef = useRef<HTMLDivElement>(null);
 
   const getRankContent = (rank: number) => {
-    const rankNumber = <span className="font-mono text-sm">{rank}</span>;
-    let rankIcon = null;
-
-    if (rank === 1) rankIcon = <Star className="w-5 h-5 text-yellow-400 fill-yellow-400" />;
-    else if (rank === 2) rankIcon = <Star className="w-5 h-5 text-slate-300 fill-slate-300" />;
-    else if (rank === 3) rankIcon = <Star className="w-5 h-5 text-amber-600 fill-amber-600" />;
-    
     return (
-        <div className="flex items-center justify-center gap-1 w-8">
-            {rankNumber}
-            {rankIcon}
-        </div>
+      <div
+        className={cn(
+          "flex items-center justify-center h-6 w-6 rounded-full font-mono text-sm",
+          rank <= 7 && "bg-green-500/20 text-green-400 font-bold"
+        )}
+      >
+        {rank}
+      </div>
     );
-  }
+  };
+  
+    const getPrintableRankContent = (rank: number) => {
+    return (
+      <div
+        className={cn(
+          "flex items-center justify-center h-7 w-7 rounded-full font-mono font-bold",
+           rank <= 7 && "bg-green-500/20 text-green-400"
+        )}
+      >
+        {rank}
+      </div>
+    );
+  };
 
   const handleDownload = () => {
     if (printRef.current) {
@@ -111,7 +121,7 @@ export function LeagueStandings({ players, onEditPlayer, onDeletePlayer, onAddPl
                             </TableRow>
                         )}
                         {players.map((player, index) => (
-                        <TableRow key={player.id} className={cn(index < 7 && "bg-muted/30")}>
+                        <TableRow key={player.id}>
                             <TableCell className="font-medium text-center">
                             <div className="flex justify-center items-center h-full">
                                 {getRankContent(index + 1)}
@@ -201,7 +211,7 @@ export function LeagueStandings({ players, onEditPlayer, onDeletePlayer, onAddPl
                         >
                             <TableCell className="font-medium text-center">
                             <div className="flex justify-center items-center h-full">
-                                {getRankContent(index + 1)}
+                                {getPrintableRankContent(index + 1)}
                             </div>
                             </TableCell>
                             <TableCell>
