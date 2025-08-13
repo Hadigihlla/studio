@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import type { Player, PlayerStatus, Team, Match, Result, Penalty } from "@/types";
 import { Header } from "@/components/game/Header";
 import { UpcomingGame } from "@/components/game/UpcomingGame";
@@ -36,6 +36,10 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
+  const showToast = useCallback((props: Parameters<typeof toast>[0]) => {
+    toast(props);
+  }, [toast]);
+
   // Load state from localStorage on initial mount
   useEffect(() => {
     try {
@@ -54,7 +58,7 @@ export default function Home() {
       }
     } catch (error) {
         console.error("Failed to load data from localStorage", error);
-        toast({
+        showToast({
             variant: 'destructive',
             title: 'Error Loading Data',
             description: 'Could not fetch data. Your saved data might be corrupted.'
@@ -62,9 +66,9 @@ export default function Home() {
     } finally {
         setIsLoading(false);
     }
-  }, [toast]);
+  }, [showToast]);
 
-  // Save state to localStorage whenever it changes, but not on initial load
+  // Save state to localStorage whenever it changes
   useEffect(() => {
     if (!isLoading) {
         try {
@@ -72,14 +76,14 @@ export default function Home() {
             localStorage.setItem("matchHistory", JSON.stringify(matchHistory));
         } catch (error) {
             console.error("Failed to save data to localStorage", error);
-            toast({
+            showToast({
                 variant: 'destructive',
                 title: 'Error Saving Data',
                 description: 'Could not save your changes.'
             });
         }
     }
-  }, [players, matchHistory, isLoading, toast]);
+  }, [players, matchHistory, isLoading, showToast]);
 
   const sortedPlayers = useMemo(() => {
     return [...players].sort((a, b) => b.points - a.points);
