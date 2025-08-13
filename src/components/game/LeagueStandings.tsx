@@ -2,6 +2,7 @@
 "use client";
 
 import { useRef } from "react";
+import html2canvas from "html2canvas";
 import type { Player } from "@/types";
 import {
   Table,
@@ -12,7 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Star, Edit, Trash, MoreVertical, Plus, Trophy, Printer } from "lucide-react";
+import { Star, Edit, Trash, MoreVertical, Plus, Trophy, Download } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -59,8 +60,19 @@ export function LeagueStandings({ players, onEditPlayer, onDeletePlayer, onAddPl
     );
   }
 
-  const handlePrint = () => {
-    window.print();
+  const handleDownload = () => {
+    if (printRef.current) {
+        html2canvas(printRef.current, {
+            scale: 2, // Higher scale for better quality
+            useCORS: true, 
+            backgroundColor: '#ffffff'
+        }).then(canvas => {
+            const link = document.createElement('a');
+            link.download = 'hirafus-league-standings.jpg';
+            link.href = canvas.toDataURL('image/jpeg', 0.9); // Use JPEG format
+            link.click();
+        });
+    }
   };
 
   return (
@@ -155,14 +167,14 @@ export function LeagueStandings({ players, onEditPlayer, onDeletePlayer, onAddPl
               </div>
           </CardContent>
           <CardFooter className="flex justify-end">
-                <Button onClick={handlePrint} variant="outline" size="sm">
-                    <Printer className="mr-2" /> Print Standings
+                <Button onClick={handleDownload} variant="outline" size="sm">
+                    <Download className="mr-2" /> Download Standings
                 </Button>
           </CardFooter>
       </Card>
 
       {/* Printable version */}
-      <div className="hidden printable-area" ref={printRef}>
+      <div className="printable-area" ref={printRef}>
         <Card className="printable-content">
             <CardHeader className="printable-header text-center">
                 <CardTitle className="printable-title text-2xl font-headline">Hirafus League</CardTitle>

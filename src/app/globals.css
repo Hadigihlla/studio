@@ -76,40 +76,29 @@
   }
 }
 
-@media print {
-  body * {
-    visibility: hidden;
-  }
-  .printable-area, .printable-area * {
-    visibility: visible;
-  }
-  .printable-area {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    padding: 1rem;
-    color: black;
-  }
-  .printable-content {
-    border: none;
-    box-shadow: none;
-    background: white;
-  }
-  .printable-title, .printable-subtitle, .printable-content table th, .printable-content table td {
-    color: black !important;
-  }
-  .printable-top-7 {
-    background-color: #f2f2f2 !important;
-    -webkit-print-color-adjust: exact; 
-    print-color-adjust: exact;
-  }
-  .no-print {
-    display: none !important;
-  }
-  @page {
-    size: A5;
-    margin: 0;
-  }
+.printable-area {
+  position: absolute;
+  left: -9999px;
+  top: -9999px;
+  width: 210mm; /* A5 width */
+  height: auto;
+  padding: 1rem;
+  background-color: white;
+  color: black;
+}
+.printable-content {
+  border: none;
+  box-shadow: none;
+  background: white;
+}
+.printable-title, .printable-subtitle, .printable-content table th, .printable-content table td {
+  color: black !important;
+}
+.printable-top-7 {
+  background-color: #f2f2f2 !important;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+.no-print {
+  /* This class is now just a semantic identifier, no styles needed */
 }
