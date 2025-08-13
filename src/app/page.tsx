@@ -150,50 +150,47 @@ export default function Home() {
     }
 
     setPlayers(currentPlayers => {
-        const playerToUpdate = currentPlayers.find(p => p.id === playerId);
-        if (!playerToUpdate) return currentPlayers;
-
-        const wasPlayerIn = playerToUpdate.status === 'in';
         let newPlayers = [...currentPlayers];
+        const playerIndex = newPlayers.findIndex(p => p.id === playerId);
+        if (playerIndex === -1) return currentPlayers;
 
-        // Determine the target status and waiting timestamp
+        const playerToUpdate = newPlayers[playerIndex];
+        const wasPlayerIn = playerToUpdate.status === 'in';
         let finalStatus = newStatus;
-        let waitingTimestamp: number | null = null;
-        
+        let waitingTimestamp: number | null = playerToUpdate.waitingTimestamp || null;
+
         if (newStatus === 'in') {
             const playersInCount = newPlayers.filter(p => p.status === 'in').length;
-            if (playersInCount >= MAX_PLAYERS_IN && playerToUpdate.status !== 'in') {
+            if (playersInCount >= MAX_PLAYERS_IN && !wasPlayerIn) {
                 finalStatus = 'waiting';
                 waitingTimestamp = Date.now();
                 showToast({ title: "Waiting List", description: `${playerToUpdate.name} added to waiting list.` });
             } else {
+                finalStatus = 'in';
+                waitingTimestamp = null;
                 showToast({ title: "You're In!", description: `${playerToUpdate.name} is confirmed.` });
             }
-        } else {
+        } else { // 'out' or 'undecided'
+            waitingTimestamp = null;
             showToast({ title: `Status Updated`, description: `${playerToUpdate.name} is now ${newStatus}.` });
         }
-        
-        // Update the target player's status
-        newPlayers = newPlayers.map(p => 
-            p.id === playerId 
-            ? { ...p, status: finalStatus, waitingTimestamp: waitingTimestamp } 
-            : p
-        );
 
-        // If a player who was 'in' is now 'out' or 'undecided', try to promote from waiting list
-        if (wasPlayerIn && (newStatus === 'out' || newStatus === 'undecided')) {
+        // Update the target player's status
+        newPlayers[playerIndex] = { ...playerToUpdate, status: finalStatus, waitingTimestamp };
+
+        // If a player who was 'in' is now not 'in', try to promote from waiting list
+        if (wasPlayerIn && finalStatus !== 'in') {
             const waitingList = newPlayers
                 .filter(p => p.status === 'waiting')
                 .sort((a, b) => (a.waitingTimestamp || 0) - (b.waitingTimestamp || 0));
 
             if (waitingList.length > 0) {
-                const promotedPlayer = waitingList[0];
-                newPlayers = newPlayers.map(p => 
-                    p.id === promotedPlayer.id 
-                    ? { ...p, status: 'in', waitingTimestamp: null } 
-                    : p
-                );
-                showToast({ title: "Player Promoted!", description: `${promotedPlayer.name} moved from waiting list to 'in'.` });
+                const promotedPlayerId = waitingList[0].id;
+                const promotedPlayerIndex = newPlayers.findIndex(p => p.id === promotedPlayerId);
+                if (promotedPlayerIndex > -1) {
+                    newPlayers[promotedPlayerIndex] = { ...newPlayers[promotedPlayerIndex], status: 'in', waitingTimestamp: null };
+                    showToast({ title: "Player Promoted!", description: `${newPlayers[promotedPlayerIndex].name} moved from waiting list to 'in'.` });
+                }
             }
         }
         
