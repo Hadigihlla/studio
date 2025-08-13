@@ -141,7 +141,7 @@ export default function Home() {
 
   const handleSetAvailability = (playerId: string, newStatus: PlayerStatus) => {
     if (gamePhase !== 'availability') {
-        toast({
+        showToast({
             variant: "destructive",
             title: "Action Locked",
             description: "Cannot change availability after teams are drafted.",
@@ -150,46 +150,53 @@ export default function Home() {
     }
 
     setPlayers(currentPlayers => {
+        const playerToUpdate = currentPlayers.find(p => p.id === playerId);
+        if (!playerToUpdate) return currentPlayers;
+
+        const wasPlayerIn = playerToUpdate.status === 'in';
         let newPlayers = [...currentPlayers];
-        const targetPlayer = newPlayers.find(p => p.id === playerId);
-        if (!targetPlayer) return currentPlayers;
-        
-        const playersInCount = newPlayers.filter(p => p.status === 'in').length;
-        
-        const updateStatus = (id: string, status: PlayerStatus) => {
-            return newPlayers.map(p => p.id === id ? { ...p, status, waitingTimestamp: status === 'waiting' ? Date.now() : null } : p);
-        };
 
+        // Determine the target status and waiting timestamp
+        let finalStatus = newStatus;
+        let waitingTimestamp: number | null = null;
+        
         if (newStatus === 'in') {
-            if (targetPlayer.status !== 'in') {
-                if (playersInCount < MAX_PLAYERS_IN) {
-                    newPlayers = updateStatus(playerId, 'in');
-                    toast({ title: "You're In!", description: `${targetPlayer.name} is confirmed.` });
-                } else {
-                    newPlayers = updateStatus(playerId, 'waiting');
-                    toast({ title: "Waiting List", description: `${targetPlayer.name} added to waiting list.` });
-                }
+            const playersInCount = newPlayers.filter(p => p.status === 'in').length;
+            if (playersInCount >= MAX_PLAYERS_IN && playerToUpdate.status !== 'in') {
+                finalStatus = 'waiting';
+                waitingTimestamp = Date.now();
+                showToast({ title: "Waiting List", description: `${playerToUpdate.name} added to waiting list.` });
+            } else {
+                showToast({ title: "You're In!", description: `${playerToUpdate.name} is confirmed.` });
             }
-        } else if (newStatus === 'out' || newStatus === 'undecided') {
-            const wasPlayerIn = targetPlayer.status === 'in';
-            newPlayers = updateStatus(playerId, newStatus);
-            toast({ title: `Status Updated`, description: `${targetPlayer.name} is now ${newStatus}.` });
+        } else {
+            showToast({ title: `Status Updated`, description: `${playerToUpdate.name} is now ${newStatus}.` });
+        }
+        
+        // Update the target player's status
+        newPlayers = newPlayers.map(p => 
+            p.id === playerId 
+            ? { ...p, status: finalStatus, waitingTimestamp: waitingTimestamp } 
+            : p
+        );
 
-            if (wasPlayerIn) {
-                const waitingList = newPlayers
-                    .filter(p => p.status === 'waiting')
-                    .sort((a, b) => (a.waitingTimestamp || 0) - (b.waitingTimestamp || 0));
+        // If a player who was 'in' is now 'out' or 'undecided', try to promote from waiting list
+        if (wasPlayerIn && (newStatus === 'out' || newStatus === 'undecided')) {
+            const waitingList = newPlayers
+                .filter(p => p.status === 'waiting')
+                .sort((a, b) => (a.waitingTimestamp || 0) - (b.waitingTimestamp || 0));
 
-                if (waitingList.length > 0) {
-                    const promotedPlayerId = waitingList[0].id;
-                    const promotedPlayer = newPlayers.find(p => p.id === promotedPlayerId);
-                    if (promotedPlayer) {
-                        newPlayers = newPlayers.map(p => p.id === promotedPlayerId ? { ...p, status: 'in', waitingTimestamp: null } : p);
-                        toast({ title: "Player Promoted!", description: `${promotedPlayer.name} moved from waiting list to 'in'.` });
-                    }
-                }
+            if (waitingList.length > 0) {
+                const promotedPlayer = waitingList[0];
+                newPlayers = newPlayers.map(p => 
+                    p.id === promotedPlayer.id 
+                    ? { ...p, status: 'in', waitingTimestamp: null } 
+                    : p
+                );
+                showToast({ title: "Player Promoted!", description: `${promotedPlayer.name} moved from waiting list to 'in'.` });
             }
         }
+        
         return newPlayers;
     });
 };
@@ -366,9 +373,9 @@ export default function Home() {
     setPenalties(prev => {
       const newPenalties = {...prev};
       if (prev[playerId] === penalty) {
-        delete newPenalties[playerId]; // Toggle off
+        delete newPenalties[playerId];
       } else {
-        newPenalties[playerId] = penalty; // Set or change penalty
+        newPenalties[playerId] = penalty;
       }
       return newPenalties;
     });
@@ -600,3 +607,5 @@ export default function Home() {
     </>
   );
 }
+
+    
