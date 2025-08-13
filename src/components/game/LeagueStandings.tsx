@@ -65,7 +65,7 @@ export function LeagueStandings({ players, onEditPlayer, onDeletePlayer, onAddPl
         html2canvas(printRef.current, {
             scale: 2, // Higher scale for better quality
             useCORS: true, 
-            backgroundColor: '#ffffff'
+            backgroundColor: '#020817'
         }).then(canvas => {
             const link = document.createElement('a');
             link.download = 'hirafus-league-standings.jpg';
@@ -111,7 +111,7 @@ export function LeagueStandings({ players, onEditPlayer, onDeletePlayer, onAddPl
                             </TableRow>
                         )}
                         {players.map((player, index) => (
-                        <TableRow key={player.id}>
+                        <TableRow key={player.id} className={cn(index < 7 && "bg-muted/30")}>
                             <TableCell className="font-medium text-center">
                             <div className="flex justify-center items-center h-full">
                                 {getRankContent(index + 1)}
