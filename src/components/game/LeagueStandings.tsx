@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useRef } from "react";
@@ -29,7 +30,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "../ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from "../ui/card";
 
 interface LeagueStandingsProps {
   players: Player[];
@@ -162,8 +163,9 @@ export function LeagueStandings({ players, onEditPlayer, onDeletePlayer, onAddPl
       {/* Printable version */}
       <div className="hidden printable-area" ref={printRef}>
         <Card className="printable-content">
-            <CardHeader className="printable-header">
-                <CardTitle className="printable-title">Hirafus League Standings</CardTitle>
+            <CardHeader className="printable-header text-center">
+                <CardTitle className="printable-title text-2xl font-headline">Hirafus League</CardTitle>
+                <CardDescription className="printable-subtitle">League Standings</CardDescription>
             </CardHeader>
             <CardContent>
                  <Table>
@@ -193,7 +195,7 @@ export function LeagueStandings({ players, onEditPlayer, onDeletePlayer, onAddPl
                             <TableCell className="text-center font-mono">{player.wins}</TableCell>
                             <TableCell className="text-center font-mono">{player.draws}</TableCell>
                             <TableCell className="text-center font-mono">{player.losses}</TableCell>
-                            <TableCell className="text-center font-mono font-bold text-primary">
+                            <TableCell className="text-center font-mono font-bold">
                                 {player.points}
                             </TableCell>
                         </TableRow>
