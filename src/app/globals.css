@@ -76,34 +76,28 @@
 }
 
 @media print {
-  body {
-    background-color: white;
-    color: black;
+  body * {
+    visibility: hidden;
   }
-  main {
-    padding: 0;
+  .printable-area, .printable-area * {
+    visibility: visible;
   }
   .printable-area {
-    display: block !important;
+    position: absolute;
+    left: 0;
+    top: 0;
     width: 100%;
     height: 100%;
-    position: absolute;
-    top: 0;
-    left: 0;
-    margin: 0;
     padding: 1cm;
+    color: black;
   }
-  .printable-area .printable-content {
+  .printable-content {
     border: none;
     box-shadow: none;
+    background: white;
   }
-  .printable-area .printable-header, .printable-area .printable-footer {
-    display: block;
-  }
-  .printable-area .printable-title {
-    text-align: center;
-    font-size: 1.5rem;
-    margin-bottom: 1rem;
+  .printable-title {
+    color: black;
   }
   .no-print {
     display: none !important;
