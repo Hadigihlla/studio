@@ -29,15 +29,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { cn } from "@/lib/utils";
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
-  } from "@/components/ui/tooltip";
-import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
-import html2canvas from "html2canvas";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "../ui/card";
 
 interface LeagueStandingsProps {
   players: Player[];
@@ -46,26 +38,8 @@ interface LeagueStandingsProps {
   onAddPlayer: () => void;
 }
 
-const FormIndicator = ({ result }: { result: 'W' | 'D' | 'L'}) => {
-    const baseClass = "w-3 h-5 rounded-sm";
-    const colorClass = result === 'W' ? 'bg-green-500' : result === 'D' ? 'bg-yellow-500' : 'bg-red-500';
-    const tooltipText = result === 'W' ? 'Win' : result === 'D' ? 'Draw' : 'Loss';
-    return (
-        <TooltipProvider>
-            <Tooltip>
-                <TooltipTrigger>
-                    <div className={cn(baseClass, colorClass)} />
-                </TooltipTrigger>
-                <TooltipContent>
-                    <p>{tooltipText}</p>
-                </TooltipContent>
-            </Tooltip>
-        </TooltipProvider>
-    )
-}
-
 export function LeagueStandings({ players, onEditPlayer, onDeletePlayer, onAddPlayer }: LeagueStandingsProps) {
-  const tableRef = useRef<HTMLTableElement>(null);
+  const printRef = useRef<HTMLDivElement>(null);
 
   const getRankContent = (rank: number) => {
     const rankNumber = <span className="font-mono text-sm">{rank}</span>;
@@ -84,122 +58,151 @@ export function LeagueStandings({ players, onEditPlayer, onDeletePlayer, onAddPl
   }
 
   const handlePrint = () => {
-    const table = tableRef.current;
-    if (table) {
-        html2canvas(table, {
-            useCORS: true,
-            backgroundColor: '#020817', // Match dark theme background
-        }).then(canvas => {
-            const link = document.createElement('a');
-            link.download = 'league-standings.jpg';
-            link.href = canvas.toDataURL('image/jpeg', 0.9);
-            link.click();
-        });
-    }
+    window.print();
   };
 
   return (
-    <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="flex items-center gap-2 font-headline">
-                <Trophy className="text-primary"/>
-                League Standings
-            </CardTitle>
-            <div className="flex gap-2">
-                <Button onClick={handlePrint} variant="outline" size="sm">
-                    <Printer className="mr-2" /> Print
-                </Button>
-                <Button onClick={onAddPlayer} size="sm">
-                    <Plus className="mr-2" /> Add Player
-                </Button>
-            </div>
-        </CardHeader>
-        <CardContent>
-            <div className="w-full overflow-auto">
-                <Table ref={tableRef}>
-                <TableHeader>
-                    <TableRow>
-                    <TableHead className="w-[50px] text-center">Rank</TableHead>
-                    <TableHead>Player</TableHead>
-                    <TableHead className="text-center hidden sm:table-cell">Form</TableHead>
-                    <TableHead className="text-center hidden md:table-cell">W/D/L</TableHead>
-                    <TableHead className="text-center">Points</TableHead>
-                    <TableHead className="w-[50px] text-right"></TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {players.length === 0 && (
+    <>
+      <Card className="no-print">
+          <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="flex items-center gap-2 font-headline">
+                  <Trophy className="text-primary"/>
+                  League Standings
+              </CardTitle>
+              <Button onClick={onAddPlayer} size="sm">
+                  <Plus className="mr-2" /> Add Player
+              </Button>
+          </CardHeader>
+          <CardContent>
+              <div className="w-full overflow-auto">
+                  <Table>
+                    <TableHeader>
                         <TableRow>
-                            <TableCell colSpan={6} className="text-center text-muted-foreground h-24">
-                                No players yet. Add one to get started!
+                        <TableHead className="w-[50px] text-center">Rank</TableHead>
+                        <TableHead>Player</TableHead>
+                        <TableHead className="text-center">MP</TableHead>
+                        <TableHead className="text-center">W</TableHead>
+                        <TableHead className="text-center">D</TableHead>
+                        <TableHead className="text-center">L</TableHead>
+                        <TableHead className="text-center">Points</TableHead>
+                        <TableHead className="w-[50px] text-right"></TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {players.length === 0 && (
+                            <TableRow>
+                                <TableCell colSpan={8} className="text-center text-muted-foreground h-24">
+                                    No players yet. Add one to get started!
+                                </TableCell>
+                            </TableRow>
+                        )}
+                        {players.map((player, index) => (
+                        <TableRow key={player.id}>
+                            <TableCell className="font-medium text-center">
+                            <div className="flex justify-center items-center h-full">
+                                {getRankContent(index + 1)}
+                            </div>
+                            </TableCell>
+                            <TableCell>
+                                <div className="font-semibold">{player.name}</div>
+                            </TableCell>
+                            <TableCell className="text-center font-mono">{player.matchesPlayed}</TableCell>
+                            <TableCell className="text-center font-mono">{player.wins}</TableCell>
+                            <TableCell className="text-center font-mono">{player.draws}</TableCell>
+                            <TableCell className="text-center font-mono">{player.losses}</TableCell>
+                            <TableCell className="text-center font-mono font-bold text-primary">
+                                {player.points}
+                            </TableCell>
+                            <TableCell className="text-right">
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                                        <MoreVertical className="h-4 w-4" />
+                                    </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => onEditPlayer(player)}>
+                                        <Edit className="mr-2" /> Edit Player
+                                    </DropdownMenuItem>
+                                    <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                            <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:text-destructive">
+                                                <Trash className="mr-2" /> Delete Player
+                                            </DropdownMenuItem>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                                This action cannot be undone. This will permanently delete {player.name} and all their data.
+                                            </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                            <AlertDialogAction onClick={() => onDeletePlayer(player.id)} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                        </AlertDialog>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
                             </TableCell>
                         </TableRow>
-                    )}
-                    {players.map((player, index) => (
-                    <TableRow key={player.id}>
-                        <TableCell className="font-medium text-center">
-                        <div className="flex justify-center items-center h-full">
-                        {getRankContent(index + 1)}
-                        </div>
-                        </TableCell>
-                        <TableCell>
-                        <div className="font-semibold">{player.name}</div>
-                        <div className="text-xs text-muted-foreground md:hidden">
-                            {player.wins}/{player.draws}/{player.losses}
-                        </div>
-                        </TableCell>
-                        <TableCell className="text-center hidden sm:table-cell">
-                            <div className="flex items-center justify-center gap-1">
-                                {player.form.map((res, i) => <FormIndicator key={i} result={res} />)}
+                        ))}
+                    </TableBody>
+                  </Table>
+              </div>
+          </CardContent>
+          <CardFooter className="flex justify-end">
+                <Button onClick={handlePrint} variant="outline" size="sm">
+                    <Printer className="mr-2" /> Print Standings
+                </Button>
+          </CardFooter>
+      </Card>
+
+      {/* Printable version */}
+      <div className="hidden printable-area" ref={printRef}>
+        <Card className="printable-content">
+            <CardHeader className="printable-header">
+                <CardTitle className="printable-title">Hirafus League Standings</CardTitle>
+            </CardHeader>
+            <CardContent>
+                 <Table>
+                    <TableHeader>
+                        <TableRow>
+                        <TableHead className="w-[50px] text-center">Rank</TableHead>
+                        <TableHead>Player</TableHead>
+                        <TableHead className="text-center">MP</TableHead>
+                        <TableHead className="text-center">W</TableHead>
+                        <TableHead className="text-center">D</TableHead>
+                        <TableHead className="text-center">L</TableHead>
+                        <TableHead className="text-center">Points</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {players.map((player, index) => (
+                        <TableRow key={`print-${player.id}`}>
+                            <TableCell className="font-medium text-center">
+                            <div className="flex justify-center items-center h-full">
+                                {getRankContent(index + 1)}
                             </div>
-                        </TableCell>
-                        <TableCell className="text-center hidden md:table-cell">
-                        <span className="font-mono text-sm">
-                            {player.wins}/{player.draws}/{player.losses}
-                        </span>
-                        </TableCell>
-                        <TableCell className="text-center font-mono font-bold text-primary">
-                        {player.points}
-                        </TableCell>
-                        <TableCell className="text-right">
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <MoreVertical className="h-4 w-4" />
-                            </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => onEditPlayer(player)}>
-                                <Edit className="mr-2" /> Edit Player
-                            </DropdownMenuItem>
-                            <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                    <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:text-destructive">
-                                        <Trash className="mr-2" /> Delete Player
-                                    </DropdownMenuItem>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                        This action cannot be undone. This will permanently delete {player.name} and all their data.
-                                    </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => onDeletePlayer(player.id)} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
-                                    </AlertDialogFooter>
-                                </AlertDialogContent>
-                                </AlertDialog>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                        </TableCell>
-                    </TableRow>
-                    ))}
-                </TableBody>
-                </Table>
-            </div>
-        </CardContent>
-    </Card>
+                            </TableCell>
+                            <TableCell>
+                                <div className="font-semibold">{player.name}</div>
+                            </TableCell>
+                            <TableCell className="text-center font-mono">{player.matchesPlayed}</TableCell>
+                            <TableCell className="text-center font-mono">{player.wins}</TableCell>
+                            <TableCell className="text-center font-mono">{player.draws}</TableCell>
+                            <TableCell className="text-center font-mono">{player.losses}</TableCell>
+                            <TableCell className="text-center font-mono font-bold text-primary">
+                                {player.points}
+                            </TableCell>
+                        </TableRow>
+                        ))}
+                    </TableBody>
+                  </Table>
+            </CardContent>
+        </Card>
+      </div>
+    </>
   );
 }

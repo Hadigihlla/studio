@@ -74,3 +74,42 @@
     @apply bg-background text-foreground;
   }
 }
+
+@media print {
+  body {
+    background-color: white;
+    color: black;
+  }
+  main {
+    padding: 0;
+  }
+  .printable-area {
+    display: block !important;
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    margin: 0;
+    padding: 1cm;
+  }
+  .printable-area .printable-content {
+    border: none;
+    box-shadow: none;
+  }
+  .printable-area .printable-header, .printable-area .printable-footer {
+    display: block;
+  }
+  .printable-area .printable-title {
+    text-align: center;
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+  }
+  .no-print {
+    display: none !important;
+  }
+  @page {
+    size: A5;
+    margin: 0;
+  }
+}

@@ -495,7 +495,7 @@ export default function Home() {
 
   if (isLoading) {
     return (
-        <div className="flex justify-center items-center h-screen">
+        <div className="flex justify-center items-center h-screen no-print">
             <div className="flex flex-col items-center gap-4">
                 <svg className="animate-spin h-10 w-10 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -509,7 +509,7 @@ export default function Home() {
 
   return (
     <>
-      <main className="container mx-auto p-4 md:p-8 relative">
+      <main className="container mx-auto p-4 md:p-8 relative no-print">
         {winner && <Confetti />}
         <Header />
         
