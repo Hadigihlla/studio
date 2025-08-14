@@ -1,7 +1,7 @@
 
 "use client";
 
-import type { Match, Player } from "@/types";
+import type { Match } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Accordion,
@@ -21,12 +21,13 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
-import { Calendar, Shield, Users, Trophy, Clock, UserX, Trash } from "lucide-react";
+import { Calendar, Shield, Users, Trophy, Clock, UserX, Trash, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface MatchHistoryProps {
   matches: Match[];
   onDeleteMatch: (matchId: string) => void;
+  onDownloadMatch: (match: Match) => void;
 }
 
 const PlayerListItem = ({ playerName, penalty }: { playerName: string, penalty: 'late' | 'no-show' | undefined }) => {
@@ -43,7 +44,7 @@ const PlayerListItem = ({ playerName, penalty }: { playerName: string, penalty: 
     );
 };
 
-export function MatchHistory({ matches, onDeleteMatch }: MatchHistoryProps) {
+export function MatchHistory({ matches, onDeleteMatch, onDownloadMatch }: MatchHistoryProps) {
 
   return (
     <Card>
@@ -96,7 +97,10 @@ export function MatchHistory({ matches, onDeleteMatch }: MatchHistoryProps) {
                             </ul>
                             </div>
                         </div>
-                        <div className="flex justify-end">
+                        <div className="flex justify-end items-center gap-2">
+                            <Button variant="outline" size="sm" onClick={() => onDownloadMatch(match)}>
+                                <Download className="mr-2" /> Download
+                            </Button>
                             <AlertDialog>
                                 <AlertDialogTrigger asChild>
                                     <Button variant="destructive" size="sm">

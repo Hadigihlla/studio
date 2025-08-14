@@ -3,6 +3,7 @@
 
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import html2canvas from "html2canvas";
+import { format } from "date-fns";
 import type { Player, PlayerStatus, Team, Match, Result, Penalty } from "@/types";
 import { Header } from "@/components/game/Header";
 import { UpcomingGame } from "@/components/game/UpcomingGame";
@@ -13,7 +14,7 @@ import { ManualDraft } from "@/components/game/ManualDraft";
 import { Confetti } from "@/components/game/Confetti";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Award, Users, Clock, Trophy, Shield } from "lucide-react";
+import { Award, Users, Clock, Trophy, Shield, UserX } from "lucide-react";
 import { MatchHistory } from "@/components/game/MatchHistory";
 import { PlayerDialog } from "@/components/game/PlayerDialog";
 import { Separator } from "@/components/ui/separator";
@@ -36,6 +37,7 @@ export default function Home() {
   const [penalties, setPenalties] = useState<Record<string, Penalty>>({});
   const [scores, setScores] = useState<{ teamA: number; teamB: number }>({ teamA: 0, teamB: 0 });
   const [isLoading, setIsLoading] = useState(true);
+  const [matchToPrint, setMatchToPrint] = useState<Match | null>(null);
   const { toast } = useToast();
   const printResultRef = useRef<HTMLDivElement>(null);
 
@@ -490,20 +492,25 @@ export default function Home() {
     toast({ title: "Match Deleted", description: "The match has been removed and player stats have been reverted." });
   };
   
-  const handleDownloadResult = () => {
-    if (printResultRef.current) {
+  const handleDownloadMatchResult = (match: Match) => {
+    setMatchToPrint(match);
+  };
+  
+  useEffect(() => {
+    if (matchToPrint && printResultRef.current) {
         html2canvas(printResultRef.current, {
             scale: 2,
             useCORS: true, 
             backgroundColor: '#020817'
         }).then(canvas => {
             const link = document.createElement('a');
-            link.download = 'hirafus-league-result.jpg';
+            link.download = `hirafus-league-result-${matchToPrint.id}.jpg`;
             link.href = canvas.toDataURL('image/jpeg', 0.9);
             link.click();
+            setMatchToPrint(null); // Reset after download
         });
     }
-  };
+  }, [matchToPrint]);
 
 
   if (isLoading) {
@@ -519,6 +526,20 @@ export default function Home() {
         </div>
     )
   }
+
+  const penaltiesInPrintableMatch = useMemo(() => {
+    if (!matchToPrint) return [];
+    return Object.entries(matchToPrint.penalties || {})
+      .map(([playerId, penalty]) => {
+        if (!penalty) return null;
+        const teamAPlayer = matchToPrint.teams.teamA.find(p => p.id === playerId);
+        const teamBPlayer = matchToPrint.teams.teamB.find(p => p.id === playerId);
+        const playerName = teamAPlayer?.name || teamBPlayer?.name;
+        if (!playerName) return null;
+        return { name: playerName, type: penalty };
+      })
+      .filter(Boolean);
+  }, [matchToPrint]);
 
   return (
     <>
@@ -596,7 +617,6 @@ export default function Home() {
                   onDraftTeams={handleDraftTeams}
                   onRecordResult={handleRecordResult}
                   onResetGame={handleResetGame}
-                  onDownloadResult={handleDownloadResult}
                   gamePhase={gamePhase}
                   playersInCount={playersIn.length}
                   unassignedCount={unassignedPlayers.length}
@@ -631,7 +651,7 @@ export default function Home() {
           </TabsContent>
 
           <TabsContent value="history">
-            <MatchHistory matches={matchHistory} onDeleteMatch={handleDeleteMatch} />
+            <MatchHistory matches={matchHistory} onDeleteMatch={handleDeleteMatch} onDownloadMatch={handleDownloadMatchResult} />
           </TabsContent>
         </Tabs>
       </main>
@@ -641,31 +661,33 @@ export default function Home() {
         onSave={handleSavePlayer}
         player={editingPlayer}
       />
-      {gamePhase === 'results' && teams && (
+      {matchToPrint && (
         <div className="printable-area" ref={printResultRef}>
            <Card className="printable-content">
             <CardHeader className="printable-header text-center">
                 <CardTitle className="printable-title text-3xl font-headline">Hirafus League</CardTitle>
-                <CardDescription className="printable-subtitle text-lg">Game Result</CardDescription>
+                <CardDescription className="printable-subtitle text-lg">
+                    {format(new Date(matchToPrint.date), "eeee, MMMM do, yyyy")}
+                </CardDescription>
             </CardHeader>
             <CardContent className="pt-6">
                 <div className="flex justify-around items-center mb-6">
                     <div className="text-center">
                         <p className="text-xl font-bold text-blue-400">Team A</p>
-                        <p className="text-5xl font-bold">{scores.teamA}</p>
+                        <p className="text-5xl font-bold">{matchToPrint.scoreA}</p>
                     </div>
                      <div className="text-4xl font-light text-muted-foreground">-</div>
                     <div className="text-center">
                         <p className="text-xl font-bold text-red-400">Team B</p>
-                        <p className="text-5xl font-bold">{scores.teamB}</p>
+                        <p className="text-5xl font-bold">{matchToPrint.scoreB}</p>
                     </div>
                 </div>
 
                 <div className="text-center mb-8">
                     <p className="text-2xl font-bold text-primary">
-                        {winner === 'Draw' && 'The match was a draw.'}
-                        {winner === 'A' && 'Team A is the winner!'}
-                        {winner === 'B' && 'Team B is the winner!'}
+                        {matchToPrint.result === 'Draw' && 'The match was a draw.'}
+                        {matchToPrint.result === 'A' && 'Team A is the winner!'}
+                        {matchToPrint.result === 'B' && 'Team B is the winner!'}
                     </p>
                 </div>
                 
@@ -673,16 +695,34 @@ export default function Home() {
                     <div>
                         <h4 className="font-semibold flex items-center gap-2 mb-2 text-blue-400 text-lg"><Shield/>Team A</h4>
                         <ul className="space-y-1">
-                            {teams.teamA.map(p => <li key={`pa-${p.id}`}>{p.name}</li>)}
+                            {matchToPrint.teams.teamA.map(p => <li key={`pa-${p.id}`}>{p.name}</li>)}
                         </ul>
                     </div>
                      <div>
                         <h4 className="font-semibold flex items-center gap-2 mb-2 text-red-400 text-lg"><Shield/>Team B</h4>
                         <ul className="space-y-1">
-                             {teams.teamB.map(p => <li key={`pb-${p.id}`}>{p.name}</li>)}
+                             {matchToPrint.teams.teamB.map(p => <li key={`pb-${p.id}`}>{p.name}</li>)}
                         </ul>
                     </div>
                 </div>
+
+                {penaltiesInPrintableMatch.length > 0 && (
+                  <>
+                    <Separator className="my-6"/>
+                    <div>
+                      <h4 className="font-semibold text-lg mb-2">Penalties</h4>
+                      <ul className="space-y-1 text-sm text-muted-foreground">
+                        {penaltiesInPrintableMatch.map((p, index) => (
+                           <li key={index} className="flex items-center gap-2">
+                             {p.type === 'late' && <Clock className="w-4 h-4 text-orange-400" />}
+                             {p.type === 'no-show' && <UserX className="w-4 h-4 text-red-500" />}
+                             <span>{p.name} ({p.type})</span>
+                           </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </>
+                )}
             </CardContent>
         </Card>
         </div>
