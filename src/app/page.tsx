@@ -1,7 +1,8 @@
 
 "use client";
 
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
+import html2canvas from "html2canvas";
 import type { Player, PlayerStatus, Team, Match, Result, Penalty } from "@/types";
 import { Header } from "@/components/game/Header";
 import { UpcomingGame } from "@/components/game/UpcomingGame";
@@ -11,14 +12,15 @@ import { TeamDisplay } from "@/components/game/TeamDisplay";
 import { ManualDraft } from "@/components/game/ManualDraft";
 import { Confetti } from "@/components/game/Confetti";
 import { useToast } from "@/hooks/use-toast";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Award, Users, Clock } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Award, Users, Clock, Trophy, Shield } from "lucide-react";
 import { MatchHistory } from "@/components/game/MatchHistory";
 import { PlayerDialog } from "@/components/game/PlayerDialog";
 import { Separator } from "@/components/ui/separator";
 import { LeagueStandings } from "@/components/game/LeagueStandings";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { initialPlayers } from "@/lib/initial-players";
+import { cn } from "@/lib/utils";
 
 const MAX_PLAYERS_IN = 14;
 
@@ -35,6 +37,8 @@ export default function Home() {
   const [scores, setScores] = useState<{ teamA: number; teamB: number }>({ teamA: 0, teamB: 0 });
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  const printResultRef = useRef<HTMLDivElement>(null);
+
 
   const showToast = useCallback((props: Parameters<typeof toast>[0]) => {
     toast(props);
@@ -150,51 +154,43 @@ export default function Home() {
     }
 
     setPlayers(currentPlayers => {
-        let newPlayers = [...currentPlayers];
-        const playerIndex = newPlayers.findIndex(p => p.id === playerId);
-        if (playerIndex === -1) return currentPlayers;
+        const playerToUpdate = currentPlayers.find(p => p.id === playerId);
+        if (!playerToUpdate) return currentPlayers;
 
-        const playerToUpdate = newPlayers[playerIndex];
-        const wasPlayerIn = playerToUpdate.status === 'in';
-        let finalStatus = newStatus;
-        let waitingTimestamp: number | null = playerToUpdate.waitingTimestamp || null;
+        const playersInCount = currentPlayers.filter(p => p.status === 'in').length;
+        const isCurrentlyIn = playerToUpdate.status === 'in';
+        let updatedPlayers = [...currentPlayers];
 
+        // Handle setting status to 'in'
         if (newStatus === 'in') {
-            const playersInCount = newPlayers.filter(p => p.status === 'in').length;
-            if (playersInCount >= MAX_PLAYERS_IN && !wasPlayerIn) {
-                finalStatus = 'waiting';
-                waitingTimestamp = Date.now();
-                showToast({ title: "Waiting List", description: `${playerToUpdate.name} added to waiting list.` });
-            } else {
-                finalStatus = 'in';
-                waitingTimestamp = null;
+            if (playersInCount < MAX_PLAYERS_IN && !isCurrentlyIn) {
+                updatedPlayers = updatedPlayers.map(p => p.id === playerId ? { ...p, status: 'in', waitingTimestamp: null } : p);
                 showToast({ title: "You're In!", description: `${playerToUpdate.name} is confirmed.` });
+            } else if (playersInCount >= MAX_PLAYERS_IN && !isCurrentlyIn) {
+                updatedPlayers = updatedPlayers.map(p => p.id === playerId ? { ...p, status: 'waiting', waitingTimestamp: Date.now() } : p);
+                showToast({ title: "Waiting List", description: `${playerToUpdate.name} added to waiting list.` });
             }
-        } else { // 'out' or 'undecided'
-            waitingTimestamp = null;
-            showToast({ title: `Status Updated`, description: `${playerToUpdate.name} is now ${newStatus}.` });
         }
+        // Handle setting status to 'out' or 'undecided'
+        else if (newStatus !== 'in') {
+            updatedPlayers = updatedPlayers.map(p => p.id === playerId ? { ...p, status: newStatus, waitingTimestamp: null } : p);
+            showToast({ title: `Status Updated`, description: `${playerToUpdate.name} is now ${newStatus}.` });
 
-        // Update the target player's status
-        newPlayers[playerIndex] = { ...playerToUpdate, status: finalStatus, waitingTimestamp };
+            // If a player who was 'in' drops out, promote from waiting list
+            if (isCurrentlyIn) {
+                const waitingList = updatedPlayers
+                    .filter(p => p.status === 'waiting')
+                    .sort((a, b) => (a.waitingTimestamp || 0) - (b.waitingTimestamp || 0));
 
-        // If a player who was 'in' is now not 'in', try to promote from waiting list
-        if (wasPlayerIn && finalStatus !== 'in') {
-            const waitingList = newPlayers
-                .filter(p => p.status === 'waiting')
-                .sort((a, b) => (a.waitingTimestamp || 0) - (b.waitingTimestamp || 0));
-
-            if (waitingList.length > 0) {
-                const promotedPlayerId = waitingList[0].id;
-                const promotedPlayerIndex = newPlayers.findIndex(p => p.id === promotedPlayerId);
-                if (promotedPlayerIndex > -1) {
-                    newPlayers[promotedPlayerIndex] = { ...newPlayers[promotedPlayerIndex], status: 'in', waitingTimestamp: null };
-                    showToast({ title: "Player Promoted!", description: `${newPlayers[promotedPlayerIndex].name} moved from waiting list to 'in'.` });
+                if (waitingList.length > 0) {
+                    const playerToPromote = waitingList[0];
+                    updatedPlayers = updatedPlayers.map(p => p.id === playerToPromote.id ? { ...p, status: 'in', waitingTimestamp: null } : p);
+                    showToast({ title: "Player Promoted!", description: `${playerToPromote.name} moved from waiting list to 'in'.` });
                 }
             }
         }
-        
-        return newPlayers;
+
+        return updatedPlayers;
     });
 };
 
@@ -466,6 +462,22 @@ export default function Home() {
     setMatchHistory(currentHistory => currentHistory.filter(m => m.id !== matchId));
     toast({ title: "Match Deleted", description: "The match has been removed and player stats have been reverted." });
   };
+  
+  const handleDownloadResult = () => {
+    if (printResultRef.current) {
+        html2canvas(printResultRef.current, {
+            scale: 2,
+            useCORS: true, 
+            backgroundColor: '#020817'
+        }).then(canvas => {
+            const link = document.createElement('a');
+            link.download = 'hirafus-league-result.jpg';
+            link.href = canvas.toDataURL('image/jpeg', 0.9);
+            link.click();
+        });
+    }
+  };
+
 
   if (isLoading) {
     return (
@@ -557,6 +569,7 @@ export default function Home() {
                   onDraftTeams={handleDraftTeams}
                   onRecordResult={handleRecordResult}
                   onResetGame={handleResetGame}
+                  onDownloadResult={handleDownloadResult}
                   gamePhase={gamePhase}
                   playersInCount={playersIn.length}
                   unassignedCount={unassignedPlayers.length}
@@ -570,9 +583,9 @@ export default function Home() {
                     </CardHeader>
                     <CardContent>
                       <p className="text-lg font-semibold">
-                        {winner === 'Draw' && 'The match was a draw.'}
-                        {winner === 'A' && 'Team A is the winner!'}
-                        {winner === 'B' && 'Team B is the winner!'}
+                        {winner === 'Draw' && `It's a draw! ${scores.teamA} - ${scores.teamB}`}
+                        {winner === 'A' && `Team A wins! ${scores.teamA} - ${scores.teamB}`}
+                        {winner === 'B' && `Team B wins! ${scores.teamB} - ${scores.teamA}`}
                       </p>
                     </CardContent>
                   </Card>
@@ -601,8 +614,52 @@ export default function Home() {
         onSave={handleSavePlayer}
         player={editingPlayer}
       />
+      {gamePhase === 'results' && teams && (
+        <div className="printable-area" ref={printResultRef}>
+           <Card className="printable-content">
+            <CardHeader className="printable-header text-center">
+                <CardTitle className="printable-title text-3xl font-headline">Hirafus League</CardTitle>
+                <CardDescription className="printable-subtitle text-lg">Game Result</CardDescription>
+            </CardHeader>
+            <CardContent className="pt-6">
+                <div className="flex justify-around items-center mb-6">
+                    <div className="text-center">
+                        <p className="text-xl font-bold text-blue-400">Team A</p>
+                        <p className="text-5xl font-bold">{scores.teamA}</p>
+                    </div>
+                     <div className="text-4xl font-light text-muted-foreground">-</div>
+                    <div className="text-center">
+                        <p className="text-xl font-bold text-red-400">Team B</p>
+                        <p className="text-5xl font-bold">{scores.teamB}</p>
+                    </div>
+                </div>
+
+                <div className="text-center mb-8">
+                    <p className="text-2xl font-bold text-primary">
+                        {winner === 'Draw' && 'The match was a draw.'}
+                        {winner === 'A' && 'Team A is the winner!'}
+                        {winner === 'B' && 'Team B is the winner!'}
+                    </p>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-6">
+                    <div>
+                        <h4 className="font-semibold flex items-center gap-2 mb-2 text-blue-400 text-lg"><Shield/>Team A</h4>
+                        <ul className="space-y-1">
+                            {teams.teamA.map(p => <li key={`pa-${p.id}`}>{p.name}</li>)}
+                        </ul>
+                    </div>
+                     <div>
+                        <h4 className="font-semibold flex items-center gap-2 mb-2 text-red-400 text-lg"><Shield/>Team B</h4>
+                        <ul className="space-y-1">
+                             {teams.teamB.map(p => <li key={`pb-${p.id}`}>{p.name}</li>)}
+                        </ul>
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
+        </div>
+      )}
     </>
   );
 }
-
-    

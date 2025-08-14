@@ -4,7 +4,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Users, Swords, Trophy, RefreshCw, CheckCircle2 } from "lucide-react";
+import { Users, Swords, Trophy, RefreshCw, Download } from "lucide-react";
 import { ScoreInput } from "./ScoreInput";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 
@@ -12,6 +12,7 @@ interface GameControlsProps {
   onDraftTeams: (method: 'points' | 'manual') => void;
   onRecordResult: () => void;
   onResetGame: () => void;
+  onDownloadResult: () => void;
   gamePhase: "availability" | "teams" | "results" | "manual-draft";
   playersInCount: number;
   unassignedCount: number; // For manual draft
@@ -23,6 +24,7 @@ export function GameControls({
   onDraftTeams,
   onRecordResult,
   onResetGame,
+  onDownloadResult,
   gamePhase,
   playersInCount,
   unassignedCount,
@@ -98,10 +100,16 @@ export function GameControls({
         )}
 
         {gamePhase === "results" && (
-          <Button onClick={onResetGame} className="w-full">
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Start New Game
-          </Button>
+          <div className="space-y-2">
+            <Button onClick={onResetGame} className="w-full">
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Start New Game
+            </Button>
+            <Button onClick={onDownloadResult} className="w-full" variant="outline">
+                <Download className="mr-2" />
+                Download Result
+            </Button>
+          </div>
         )}
       </CardContent>
     </Card>
