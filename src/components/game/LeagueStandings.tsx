@@ -95,6 +95,8 @@ export function LeagueStandings({ players, onEditPlayer, onDeletePlayer, onAddPl
                         <TableHead className="text-center">W</TableHead>
                         <TableHead className="text-center">D</TableHead>
                         <TableHead className="text-center">L</TableHead>
+                        <TableHead className="text-center">Late</TableHead>
+                        <TableHead className="text-center">No Show</TableHead>
                         <TableHead className="text-center">Points</TableHead>
                         <TableHead className="w-[50px] text-right"></TableHead>
                         </TableRow>
@@ -102,7 +104,7 @@ export function LeagueStandings({ players, onEditPlayer, onDeletePlayer, onAddPl
                     <TableBody>
                         {players.length === 0 && (
                             <TableRow>
-                                <TableCell colSpan={8} className="text-center text-muted-foreground h-24">
+                                <TableCell colSpan={10} className="text-center text-muted-foreground h-24">
                                     No players yet. Add one to get started!
                                 </TableCell>
                             </TableRow>
@@ -121,6 +123,8 @@ export function LeagueStandings({ players, onEditPlayer, onDeletePlayer, onAddPl
                             <TableCell className="text-center font-mono">{player.wins}</TableCell>
                             <TableCell className="text-center font-mono">{player.draws}</TableCell>
                             <TableCell className="text-center font-mono">{player.losses}</TableCell>
+                            <TableCell className="text-center font-mono text-orange-400">{player.latePenalties || 0}</TableCell>
+                            <TableCell className="text-center font-mono text-red-500">{player.noShowPenalties || 0}</TableCell>
                             <TableCell className="text-center font-mono font-bold text-primary">
                                 {player.points}
                             </TableCell>
@@ -187,6 +191,8 @@ export function LeagueStandings({ players, onEditPlayer, onDeletePlayer, onAddPl
                         <TableHead className="text-center">W</TableHead>
                         <TableHead className="text-center">D</TableHead>
                         <TableHead className="text-center">L</TableHead>
+                        <TableHead className="text-center">Late</TableHead>
+                        <TableHead className="text-center">No Show</TableHead>
                         <TableHead className="text-center">Points</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -210,6 +216,8 @@ export function LeagueStandings({ players, onEditPlayer, onDeletePlayer, onAddPl
                             <TableCell className="text-center font-mono text-base">{player.wins}</TableCell>
                             <TableCell className="text-center font-mono text-base">{player.draws}</TableCell>
                             <TableCell className="text-center font-mono text-base">{player.losses}</TableCell>
+                            <TableCell className="text-center font-mono text-base text-orange-400">{player.latePenalties || 0}</TableCell>
+                            <TableCell className="text-center font-mono text-base text-red-500">{player.noShowPenalties || 0}</TableCell>
                             <TableCell className="text-center font-mono font-bold text-lg">
                                 {player.points}
                             </TableCell>

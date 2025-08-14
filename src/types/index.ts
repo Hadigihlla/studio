@@ -14,6 +14,8 @@ export interface Player {
   losses: number;
   form: Form;
   waitingTimestamp?: number | null;
+  latePenalties?: number;
+  noShowPenalties?: number;
 }
 
 export interface Team {

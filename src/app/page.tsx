@@ -89,9 +89,34 @@ export default function Home() {
     }
   }, [players, matchHistory, isLoading, showToast]);
 
+  const playersWithPenalties = useMemo(() => {
+    const penaltyData = players.map(player => {
+        let latePenalties = 0;
+        let noShowPenalties = 0;
+
+        matchHistory.forEach(match => {
+            if (match.penalties && match.penalties[player.id]) {
+                if (match.penalties[player.id] === 'late') {
+                    latePenalties += 2;
+                } else if (match.penalties[player.id] === 'no-show') {
+                    noShowPenalties += 3;
+                }
+            }
+        });
+
+        return {
+            ...player,
+            latePenalties,
+            noShowPenalties,
+        };
+    });
+
+    return penaltyData.sort((a, b) => b.points - a.points);
+  }, [players, matchHistory]);
+
   const sortedPlayers = useMemo(() => {
-    return [...players].sort((a, b) => b.points - a.points);
-  }, [players]);
+    return playersWithPenalties.sort((a, b) => b.points - a.points);
+  }, [playersWithPenalties]);
 
   const playersIn = useMemo(() => sortedPlayers.filter(p => p.status === 'in'), [sortedPlayers]);
   const playersWaiting = useMemo(() => {
@@ -174,7 +199,9 @@ export default function Home() {
         // Handle setting status to 'out' or 'undecided'
         else if (newStatus !== 'in') {
             updatedPlayers = updatedPlayers.map(p => p.id === playerId ? { ...p, status: newStatus, waitingTimestamp: null } : p);
-            showToast({ title: `Status Updated`, description: `${playerToUpdate.name} is now ${newStatus}.` });
+            if (newStatus !== playerToUpdate.status) {
+              showToast({ title: `Status Updated`, description: `${playerToUpdate.name} is now ${newStatus}.` });
+            }
 
             // If a player who was 'in' drops out, promote from waiting list
             if (isCurrentlyIn) {
