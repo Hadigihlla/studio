@@ -41,6 +41,7 @@ const PlayerListItem = ({ player, penalty }: { player: MatchPlayer, penalty: Pen
                     <AvatarFallback>{player.name.charAt(0)}</AvatarFallback>
                 </Avatar>
                 {player.name}
+                {player.isGuest && <span className="text-xs text-muted-foreground">(Guest)</span>}
             </div>
             {penalty === 'late' && <Clock className="w-4 h-4 text-orange-400" />}
             {penalty === 'no-show' && <UserX className="w-4 h-4 text-red-500" />}

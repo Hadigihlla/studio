@@ -23,8 +23,10 @@ import { SettingsDialog } from "@/components/game/SettingsDialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { initialPlayers } from "@/lib/initial-players";
 import { cn } from "@/lib/utils";
+import { PlusOneManager } from "@/components/game/PlusOneManager";
 
 const MAX_PLAYERS_IN = 14;
+const MAX_GUESTS = 4;
 
 const defaultSettings: Settings = {
   latePenalty: 2,
@@ -46,6 +48,7 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const [matchToPrint, setMatchToPrint] = useState<Match | null>(null);
   const [settings, setSettings] = useState<Settings>(defaultSettings);
+  const [plusOneCount, setPlusOneCount] = useState(0);
   const printResultRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -60,6 +63,7 @@ export default function Home() {
       const savedPlayers = localStorage.getItem("players");
       const savedMatches = localStorage.getItem("matchHistory");
       const savedSettings = localStorage.getItem("settings");
+      const savedPlusOnes = localStorage.getItem("plusOneCount");
 
       if (savedPlayers) {
         setPlayers(JSON.parse(savedPlayers));
@@ -74,6 +78,10 @@ export default function Home() {
 
       if (savedSettings) {
         setSettings(JSON.parse(savedSettings));
+      }
+      
+      if (savedPlusOnes) {
+        setPlusOneCount(JSON.parse(savedPlusOnes));
       }
 
     } catch (error) {
@@ -95,6 +103,7 @@ export default function Home() {
             localStorage.setItem("players", JSON.stringify(players));
             localStorage.setItem("matchHistory", JSON.stringify(matchHistory));
             localStorage.setItem("settings", JSON.stringify(settings));
+            localStorage.setItem("plusOneCount", JSON.stringify(plusOneCount));
         } catch (error) {
             console.error("Failed to save data to localStorage", error);
             showToast({
@@ -104,7 +113,7 @@ export default function Home() {
             });
         }
     }
-  }, [players, matchHistory, settings, isLoading, showToast]);
+  }, [players, matchHistory, settings, plusOneCount, isLoading, showToast]);
   
   const penaltiesInPrintableMatch = useMemo(() => {
     if (!matchToPrint) return [];
@@ -114,11 +123,25 @@ export default function Home() {
         const teamAPlayer = matchToPrint.teams.teamA.find(p => p.id === playerId);
         const teamBPlayer = matchToPrint.teams.teamB.find(p => p.id === playerId);
         const player = teamAPlayer || teamBPlayer;
-        if (!player) return null;
+        if (!player || player.isGuest) return null; // Don't show penalties for guests
         return { name: player.name, type: penalty, photoURL: player.photoURL };
       })
       .filter((p): p is { name: string; type: NonNullable<Penalty>; photoURL?: string } => p !== null);
   }, [matchToPrint]);
+
+  if (isLoading) {
+    return (
+        <div className="flex justify-center items-center h-screen no-print">
+            <div className="flex flex-col items-center gap-4">
+                <svg className="animate-spin h-10 w-10 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <p className="text-muted-foreground">Loading League Data...</p>
+            </div>
+        </div>
+    )
+  }
 
   const playersWithPenalties = useMemo(() => {
     const penaltyData = players.map(player => {
@@ -148,8 +171,33 @@ export default function Home() {
   const sortedPlayers = useMemo(() => {
     return playersWithPenalties.sort((a, b) => b.points - a.points);
   }, [playersWithPenalties]);
+  
+  const guestPlayers = useMemo(() => {
+    const medianPoints = sortedPlayers.length > 0
+        ? sortedPlayers[Math.floor(sortedPlayers.length / 2)].points
+        : 50; // Fallback points for guests if no players exist
 
-  const playersIn = useMemo(() => sortedPlayers.filter(p => p.status === 'in'), [sortedPlayers]);
+    return Array.from({ length: plusOneCount }, (_, i) => ({
+        id: `guest${i + 1}`,
+        name: `Guest ${i + 1}`,
+        points: medianPoints, // Assign median points for fair auto-drafting
+        status: 'in' as PlayerStatus,
+        matchesPlayed: 0,
+        wins: 0,
+        draws: 0,
+        losses: 0,
+        form: [],
+        photoURL: `https://placehold.co/40x40.png?text=G${i+1}`,
+        isGuest: true,
+        waitingTimestamp: null,
+    }));
+  }, [plusOneCount, sortedPlayers]);
+
+  const playersIn = useMemo(() => {
+    const rosterIn = sortedPlayers.filter(p => p.status === 'in');
+    return [...rosterIn, ...guestPlayers];
+  }, [sortedPlayers, guestPlayers]);
+
   const playersWaiting = useMemo(() => {
     return sortedPlayers
         .filter(p => p.status === 'waiting')
@@ -178,20 +226,6 @@ export default function Home() {
         });
     }
   }, [matchToPrint]);
-
-  if (isLoading) {
-    return (
-        <div className="flex justify-center items-center h-screen no-print">
-            <div className="flex flex-col items-center gap-4">
-                <svg className="animate-spin h-10 w-10 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                <p className="text-muted-foreground">Loading League Data...</p>
-            </div>
-        </div>
-    )
-  }
 
   const handleOpenPlayerDialog = (player: Player | null) => {
     setEditingPlayer(player);
@@ -250,24 +284,26 @@ export default function Home() {
         const playerToUpdate = currentPlayers.find(p => p.id === playerId);
         if (!playerToUpdate) return currentPlayers;
 
-        const playersInCount = currentPlayers.filter(p => p.status === 'in').length;
+        const rosterInCount = currentPlayers.filter(p => p.status === 'in').length;
         const isCurrentlyIn = playerToUpdate.status === 'in';
         let updatedPlayers = [...currentPlayers];
 
         // Handle setting status to 'in'
         if (newStatus === 'in') {
-            if (playersInCount < MAX_PLAYERS_IN && !isCurrentlyIn) {
+            if (rosterInCount < MAX_PLAYERS_IN && !isCurrentlyIn) {
                 updatedPlayers = updatedPlayers.map(p => p.id === playerId ? { ...p, status: 'in', waitingTimestamp: null } : p);
                 showToast({ title: "You're In!", description: `${playerToUpdate.name} is confirmed.` });
-            } else if (playersInCount >= MAX_PLAYERS_IN && !isCurrentlyIn) {
+            } else if (rosterInCount >= MAX_PLAYERS_IN && !isCurrentlyIn) {
                 updatedPlayers = updatedPlayers.map(p => p.id === playerId ? { ...p, status: 'waiting', waitingTimestamp: Date.now() } : p);
                 showToast({ title: "Waiting List", description: `${playerToUpdate.name} added to waiting list.` });
             }
         }
         // Handle setting status to 'out' or 'undecided'
         else if (newStatus !== 'in') {
+            const statusChanged = newStatus !== playerToUpdate.status;
             updatedPlayers = updatedPlayers.map(p => p.id === playerId ? { ...p, status: newStatus, waitingTimestamp: null } : p);
-            if (newStatus !== playerToUpdate.status) {
+            
+            if (statusChanged) {
               showToast({ title: `Status Updated`, description: `${playerToUpdate.name} is now ${newStatus}.` });
             }
 
@@ -364,7 +400,7 @@ export default function Home() {
     const playerIdsToUpdate = new Set(playersToUpdate.map(p => p.id));
     
     setPlayers(prev => prev.map(p => {
-        if (playerIdsToUpdate.has(p.id)) {
+        if (!p.isGuest && playerIdsToUpdate.has(p.id)) {
             const wasNoShow = penaltiesForMatch[p.id] === 'no-show';
             const pointsGained = result === 'W' ? 3 : result === 'D' ? 2 : 1;
             
@@ -396,7 +432,7 @@ export default function Home() {
         let tempPlayers = [...prevPlayers];
         Object.entries(penalties).forEach(([playerId, penalty]) => {
             const playerIndex = tempPlayers.findIndex(p => p.id === playerId);
-            if (playerIndex > -1 && penalty) {
+            if (playerIndex > -1 && penalty && !tempPlayers[playerIndex].isGuest) {
                 const deduction = penalty === 'late' ? settings.latePenalty : settings.noShowPenalty;
                 penaltyMessages.push(`${tempPlayers[playerIndex].name} -${deduction}pts`);
                 tempPlayers[playerIndex] = {
@@ -429,8 +465,8 @@ export default function Home() {
       id: `m${Date.now()}`,
       date: new Date().toISOString(),
       teams: {
-        teamA: teams.teamA.map(p => ({id: p.id, name: p.name, photoURL: p.photoURL})),
-        teamB: teams.teamB.map(p => ({id: p.id, name: p.name, photoURL: p.photoURL}))
+        teamA: teams.teamA.map(p => ({id: p.id, name: p.name, photoURL: p.photoURL, isGuest: p.isGuest})),
+        teamB: teams.teamB.map(p => ({id: p.id, name: p.name, photoURL: p.photoURL, isGuest: p.isGuest}))
       },
       result: result,
       scoreA: scores.teamA,
@@ -453,6 +489,7 @@ export default function Home() {
     setWinner(null);
     setPenalties({});
     setScores({ teamA: 0, teamB: 0 });
+    setPlusOneCount(0);
     setPlayers(prev => prev.map(p => ({...p, status: 'undecided', waitingTimestamp: null})));
     toast({ title: "New Game Started", description: "Player availability has been reset. Good luck!" });
   };
@@ -485,7 +522,7 @@ export default function Home() {
         // 1. Revert penalty deductions from the deleted match
         Object.entries(matchToDelete.penalties || {}).forEach(([playerId, penalty]) => {
             const player = playerMap.get(playerId);
-            if (player && penalty) {
+            if (player && penalty && !player.isGuest) {
                 const deduction = penalty === 'late' ? settings.latePenalty : settings.noShowPenalty;
                 player.points += deduction;
             }
@@ -494,7 +531,7 @@ export default function Home() {
         // 2. Revert game result stats from the deleted match
         allPlayerIdsInMatch.forEach(playerId => {
             const player = playerMap.get(playerId);
-            if (!player) return;
+            if (!player || player.isGuest) return;
 
             let result: 'W' | 'D' | 'L' | null = null;
             const wasInTeamA = matchToDelete.teams.teamA.some(p => p.id === playerId);
@@ -535,7 +572,7 @@ export default function Home() {
         const remainingMatches = matchHistory.filter(m => m.id !== matchId);
         
         finalPlayers = finalPlayers.map(player => {
-            if (allPlayerIdsInMatch.includes(player.id)) {
+            if (!player.isGuest && allPlayerIdsInMatch.includes(player.id)) {
                  const newForm: ('W' | 'D' | 'L')[] = [];
                  remainingMatches.forEach(match => {
                      let result: 'W' | 'D' | 'L' | null = null;
@@ -561,6 +598,8 @@ export default function Home() {
   const handleDownloadMatchResult = (match: Match) => {
     setMatchToPrint(match);
   };
+  
+  const rosterInCount = sortedPlayers.filter(p => p.status === 'in').length;
 
   return (
     <>
@@ -587,7 +626,7 @@ export default function Home() {
                     <CardContent className="space-y-6">
                         <div>
                             <h3 className="text-lg font-semibold flex items-center gap-2 mb-2 text-green-500">
-                                <Users /> Confirmed Players ({playersIn.length}/{MAX_PLAYERS_IN})
+                                <Users /> Confirmed Players ({rosterInCount}/{MAX_PLAYERS_IN} + {plusOneCount} Guests)
                             </h3>
                             <PlayerLeaderboard players={playersIn} onSetAvailability={handleSetAvailability} gamePhase={gamePhase} />
                         </div>
@@ -609,6 +648,12 @@ export default function Home() {
                             </h3>
                             <PlayerLeaderboard players={otherPlayers} onSetAvailability={handleSetAvailability} gamePhase={gamePhase} />
                         </div>
+                        <Separator className="my-4"/>
+                        <PlusOneManager 
+                          count={plusOneCount}
+                          setCount={setPlusOneCount}
+                          maxGuests={MAX_GUESTS}
+                        />
                     </CardContent>
                   </Card>
                 )}
@@ -665,7 +710,7 @@ export default function Home() {
           
           <TabsContent value="standings">
             <LeagueStandings 
-              players={sortedPlayers}
+              players={sortedPlayers.filter(p => !p.isGuest)}
               onEditPlayer={handleOpenPlayerDialog}
               onDeletePlayer={handleDeletePlayer}
               onAddPlayer={() => handleOpenPlayerDialog(null)}
@@ -724,13 +769,13 @@ export default function Home() {
                     <div>
                         <h4 className="font-semibold flex items-center gap-2 mb-2 text-blue-400 text-lg"><Shield/>Team A</h4>
                         <ul className="space-y-1">
-                            {matchToPrint.teams.teamA.map(p => <li key={`pa-${p.id}`}>{p.name}</li>)}
+                            {matchToPrint.teams.teamA.map(p => <li key={`pa-${p.id}`}>{p.name}{p.isGuest && ' (Guest)'}</li>)}
                         </ul>
                     </div>
                      <div>
                         <h4 className="font-semibold flex items-center gap-2 mb-2 text-red-400 text-lg"><Shield/>Team B</h4>
                         <ul className="space-y-1">
-                             {matchToPrint.teams.teamB.map(p => <li key={`pb-${p.id}`}>{p.name}</li>)}
+                             {matchToPrint.teams.teamB.map(p => <li key={`pb-${p.id}`}>{p.name}{p.isGuest && ' (Guest)'}</li>)}
                         </ul>
                     </div>
                 </div>

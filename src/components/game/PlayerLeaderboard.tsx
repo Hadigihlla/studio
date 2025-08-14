@@ -51,8 +51,11 @@ const ManualDraftControls = ({ player, onAssignPlayer }: { player: Player, onAss
     </div>
 );
 
-const StatusBadge = ({ status }: { status: PlayerStatus }) => {
-    switch (status) {
+const StatusBadge = ({ player }: { player: Player }) => {
+    if (player.isGuest) {
+      return <Badge variant="secondary">GUEST</Badge>;
+    }
+    switch (player.status) {
         case 'in': return <Badge variant="default" className="bg-green-500 hover:bg-green-500">IN</Badge>;
         case 'out': return <Badge variant="destructive">OUT</Badge>;
         case 'undecided': return <Badge variant="secondary">UNDECIDED</Badge>;
@@ -97,12 +100,12 @@ export function PlayerLeaderboard({ players, onSetAvailability, gamePhase, onAss
                   </div>
                 </TableCell>
                 <TableCell className="text-center font-mono font-bold text-primary">
-                  {player.points}
+                  {player.isGuest ? '-' : player.points}
                 </TableCell>
                 <TableCell className="text-center">
-                    {showAvailabilityControls && <AvailabilityControls player={player} onSetAvailability={onSetAvailability} />}
+                    {showAvailabilityControls && !player.isGuest && <AvailabilityControls player={player} onSetAvailability={onSetAvailability} />}
                     {showManualDraftControls && <ManualDraftControls player={player} onAssignPlayer={onAssignPlayer} />}
-                    {!showAvailabilityControls && !showManualDraftControls && <StatusBadge status={player.status} />}
+                    {(!showAvailabilityControls || player.isGuest) && !showManualDraftControls && <StatusBadge player={player} />}
                 </TableCell>
               </TableRow>
             ))}

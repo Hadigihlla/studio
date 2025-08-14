@@ -25,21 +25,21 @@ interface TeamDisplayProps {
 }
 
 const PenaltyIcons = ({ 
-  playerId, 
+  player,
   currentPenalty, 
   onSetPenalty,
   isLocked,
   settings
 } : {
-  playerId: string,
+  player: Player,
   currentPenalty: Penalty,
   onSetPenalty: (playerId: string, penalty: Penalty) => void,
   isLocked: boolean,
   settings: Settings
 }) => {
-  if (isLocked) {
+  if (isLocked || player.isGuest) {
     return (
-      <div className="flex gap-1 items-center">
+      <div className="flex gap-1 items-center w-[60px] justify-end">
         {currentPenalty === 'late' && <Clock className="w-4 h-4 text-orange-400" />}
         {currentPenalty === 'no-show' && <UserX className="w-4 h-4 text-red-500" />}
       </div>
@@ -58,7 +58,7 @@ const PenaltyIcons = ({
                 "h-6 w-6 text-muted-foreground hover:text-orange-400",
                 currentPenalty === 'late' && 'text-orange-400 bg-orange-400/10'
               )}
-              onClick={() => onSetPenalty(playerId, 'late')}
+              onClick={() => onSetPenalty(player.id, 'late')}
             >
               <Clock className="w-4 h-4" />
             </Button>
@@ -76,7 +76,7 @@ const PenaltyIcons = ({
                 "h-6 w-6 text-muted-foreground hover:text-red-500",
                 currentPenalty === 'no-show' && 'text-red-500 bg-red-500/10'
               )}
-              onClick={() => onSetPenalty(playerId, 'no-show')}
+              onClick={() => onSetPenalty(player.id, 'no-show')}
             >
               <UserX className="w-4 h-4" />
             </Button>
@@ -136,17 +136,18 @@ const TeamCard = ({
               <AvatarFallback>{player.name.charAt(0)}</AvatarFallback>
             </Avatar>
             <span className="font-medium">{player.name}</span>
+            {player.isGuest && <span className="text-xs text-muted-foreground">(Guest)</span>}
           </div>
           <div className="flex items-center gap-2">
             <PenaltyIcons 
-              playerId={player.id}
+              player={player}
               currentPenalty={penalties[player.id]}
               onSetPenalty={onSetPenalty}
               isLocked={isLocked}
               settings={settings}
             />
             <div className="font-mono text-sm text-muted-foreground w-14 text-right">
-              {player.points} pts
+              {!player.isGuest && `${player.points} pts`}
             </div>
           </div>
         </div>

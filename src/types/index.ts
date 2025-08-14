@@ -1,4 +1,5 @@
 
+
 export type PlayerStatus = "in" | "out" | "undecided" | "waiting";
 export type Result = "A" | "B" | "Draw";
 export type Form = ('W' | 'D' | 'L')[];
@@ -18,6 +19,7 @@ export interface Player {
   waitingTimestamp?: number | null;
   latePenalties?: number;
   noShowPenalties?: number;
+  isGuest?: boolean;
 }
 
 export interface Team {
@@ -29,6 +31,7 @@ export interface MatchPlayer {
   id: string;
   name: string;
   photoURL?: string;
+  isGuest?: boolean;
 }
 
 export interface Match {
