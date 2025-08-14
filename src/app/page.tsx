@@ -14,7 +14,7 @@ import { ManualDraft } from "@/components/game/ManualDraft";
 import { Confetti } from "@/components/game/Confetti";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Award, Users, Clock, Trophy, Shield, UserX } from "lucide-react";
+import { Award, Users, Clock, Trophy, Shield, UserX, UserPlus } from "lucide-react";
 import { MatchHistory } from "@/components/game/MatchHistory";
 import { PlayerDialog } from "@/components/game/PlayerDialog";
 import { Separator } from "@/components/ui/separator";
@@ -52,12 +52,11 @@ export default function Home() {
   const printResultRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
-
   const showToast = useCallback((props: Parameters<typeof toast>[0]) => {
-    setTimeout(() => toast(props), 0);
+    toast(props);
   }, [toast]);
-
-  // Load state from localStorage on initial mount
+  
+    // Load state from localStorage on initial mount
   useEffect(() => {
     try {
       const savedPlayers = localStorage.getItem("players");
@@ -143,17 +142,21 @@ export default function Home() {
   const sortedPlayers = useMemo(() => {
     return playersWithPenalties.sort((a, b) => b.points - a.points);
   }, [playersWithPenalties]);
+
+  const rosterInCount = useMemo(() => sortedPlayers.filter(p => p.status === 'in').length, [sortedPlayers]);
   
   const guestPlayers = useMemo(() => {
     const medianPoints = sortedPlayers.length > 0
         ? sortedPlayers[Math.floor(sortedPlayers.length / 2)].points
-        : 50; // Fallback points for guests if no players exist
+        : 50;
+
+    const totalIn = rosterInCount + plusOneCount;
 
     return Array.from({ length: plusOneCount }, (_, i) => ({
         id: `guest${i + 1}`,
         name: `Guest ${i + 1}`,
-        points: medianPoints, // Assign median points for fair auto-drafting
-        status: 'in' as PlayerStatus,
+        points: medianPoints,
+        status: (rosterInCount + i) < MAX_PLAYERS_IN ? 'in' : 'waiting' as PlayerStatus,
         matchesPlayed: 0,
         wins: 0,
         draws: 0,
@@ -161,36 +164,30 @@ export default function Home() {
         form: [],
         photoURL: `https://placehold.co/40x40.png?text=G${i+1}`,
         isGuest: true,
-        waitingTimestamp: null,
+        waitingTimestamp: (rosterInCount + i) < MAX_PLAYERS_IN ? null : Date.now() + i,
     }));
-  }, [plusOneCount, sortedPlayers]);
+  }, [plusOneCount, sortedPlayers, rosterInCount]);
   
-  const rosterInCount = useMemo(() => sortedPlayers.filter(p => p.status === 'in').length, [sortedPlayers]);
-  const totalInCount = useMemo(() => rosterInCount + plusOneCount, [rosterInCount, plusOneCount]);
-
-
   const playersIn = useMemo(() => {
     const rosterIn = sortedPlayers.filter(p => p.status === 'in');
-    
-    const availableGuestSlots = MAX_PLAYERS_IN - rosterIn.length;
-    const guestsIn = availableGuestSlots > 0 ? guestPlayers.slice(0, availableGuestSlots) : [];
-    
+    const guestsIn = guestPlayers.filter(p => p.status === 'in');
     return [...rosterIn, ...guestsIn];
-  }, [sortedPlayers, guestPlayers, rosterInCount]);
+  }, [sortedPlayers, guestPlayers]);
+
+  const guestsInCount = useMemo(() => guestPlayers.filter(p => p.status === 'in').length, [guestPlayers]);
 
   const playersWaiting = useMemo(() => {
      const rosterWaiting = sortedPlayers
         .filter(p => p.status === 'waiting')
         .sort((a, b) => (a.waitingTimestamp || 0) - (b.waitingTimestamp || 0));
-
-    const rosterInCount = sortedPlayers.filter(p => p.status === 'in').length;
-    const availableGuestSlots = MAX_PLAYERS_IN - rosterInCount;
-    const guestsWaiting = availableGuestSlots < guestPlayers.length
-      ? guestPlayers.slice(availableGuestSlots > 0 ? availableGuestSlots : 0)
-      : [];
+    
+    const guestsWaiting = guestPlayers.filter(g => g.status === 'waiting');
 
     return [...rosterWaiting, ...guestsWaiting];
-  }, [sortedPlayers, guestPlayers, rosterInCount]);
+  }, [sortedPlayers, guestPlayers]);
+  
+  const rosterWaitingCount = useMemo(() => sortedPlayers.filter(p => p.status === 'waiting').length, [sortedPlayers]);
+  const guestsWaitingCount = useMemo(() => guestPlayers.filter(p => p.status === 'waiting').length, [guestPlayers]);
 
   const otherPlayers = useMemo(() => sortedPlayers.filter(p => p.status === 'undecided' || p.status === 'out'), [sortedPlayers]);
   
@@ -213,7 +210,6 @@ export default function Home() {
       })
       .filter((p): p is { name: string; type: NonNullable<Penalty>; photoURL?: string } => p !== null);
   }, [matchToPrint]);
-  
 
   useEffect(() => {
     if (matchToPrint && printResultRef.current) {
@@ -230,6 +226,68 @@ export default function Home() {
         });
     }
   }, [matchToPrint]);
+  
+  const handleSetAvailability = (playerId: string, newStatus: PlayerStatus) => {
+    if (gamePhase !== 'availability') {
+        showToast({
+            variant: "destructive",
+            title: "Action Locked",
+            description: "Cannot change availability after teams are drafted.",
+        });
+        return;
+    }
+
+    setPlayers(currentPlayers => {
+        const playerToUpdate = currentPlayers.find(p => p.id === playerId);
+        if (!playerToUpdate) return currentPlayers;
+
+        const currentRosterInCount = currentPlayers.filter(p => p.status === 'in').length;
+        const guestsInCount = guestPlayers.filter(g => g.status === 'in').length;
+        const totalIn = currentRosterInCount + guestsInCount;
+
+        let updatedPlayers = [...currentPlayers];
+
+        if (newStatus === 'in') {
+            if (totalIn < MAX_PLAYERS_IN) {
+                updatedPlayers = updatedPlayers.map(p => 
+                    p.id === playerId ? { ...p, status: 'in', waitingTimestamp: null } : p
+                );
+                showToast({ title: "You're In!", description: `${playerToUpdate.name} is confirmed for the match.` });
+            } else {
+                updatedPlayers = updatedPlayers.map(p => 
+                    p.id === playerId ? { ...p, status: 'waiting', waitingTimestamp: p.waitingTimestamp || Date.now() } : p
+                );
+                showToast({ title: "Waiting List", description: `${playerToUpdate.name} added to waiting list as the game is full.` });
+            }
+        } else { // Player is setting status to 'out' or 'undecided'
+            const wasPlayerIn = playerToUpdate.status === 'in';
+            updatedPlayers = updatedPlayers.map(p => 
+                p.id === playerId ? { ...p, status: newStatus, waitingTimestamp: null } : p
+            );
+
+            if (playerToUpdate.status !== newStatus) {
+                showToast({ title: `Status Updated`, description: `${playerToUpdate.name} is now ${newStatus}.` });
+            }
+
+            // If a player who was 'in' drops out, promote someone from the waiting list
+            if (wasPlayerIn) {
+                const rosterWaitingList = updatedPlayers
+                    .filter(p => p.status === 'waiting' && !p.isGuest)
+                    .sort((a, b) => (a.waitingTimestamp || 0) - (b.waitingTimestamp || 0));
+
+                if (rosterWaitingList.length > 0) {
+                    const playerToPromote = rosterWaitingList[0];
+                    updatedPlayers = updatedPlayers.map(p => 
+                        p.id === playerToPromote.id ? { ...p, status: 'in', waitingTimestamp: null } : p
+                    );
+                    showToast({ title: "Player Promoted!", description: `${playerToPromote.name} moved from waiting list to 'in'.` });
+                }
+            }
+        }
+
+        return updatedPlayers;
+    });
+};
 
   if (isLoading) {
     return (
@@ -287,59 +345,6 @@ export default function Home() {
       toast({ variant: 'destructive', title: "Player Removed", description: `${player.name} has been removed.` });
     }
   };
-
-  const handleSetAvailability = (playerId: string, newStatus: PlayerStatus) => {
-    if (gamePhase !== 'availability') {
-        showToast({
-            variant: "destructive",
-            title: "Action Locked",
-            description: "Cannot change availability after teams are drafted.",
-        });
-        return;
-    }
-
-    setPlayers(currentPlayers => {
-        const playerToUpdate = currentPlayers.find(p => p.id === playerId);
-        if (!playerToUpdate) return currentPlayers;
-
-        const currentRosterInCount = currentPlayers.filter(p => p.status === 'in').length;
-        const totalInWithGuests = currentRosterInCount + plusOneCount;
-        const isCurrentlyIn = playerToUpdate.status === 'in';
-        let updatedPlayers = [...currentPlayers];
-
-        if (newStatus === 'in') {
-            if (totalInWithGuests < MAX_PLAYERS_IN && !isCurrentlyIn) {
-                updatedPlayers = updatedPlayers.map(p => p.id === playerId ? { ...p, status: 'in', waitingTimestamp: null } : p);
-                showToast({ title: "You're In!", description: `${playerToUpdate.name} is confirmed.` });
-            } else if (!isCurrentlyIn) { // This covers both roster being full, or player already on waiting list
-                updatedPlayers = updatedPlayers.map(p => p.id === playerId ? { ...p, status: 'waiting', waitingTimestamp: p.waitingTimestamp || Date.now() } : p);
-                showToast({ title: "Waiting List", description: `${playerToUpdate.name} added to waiting list as the game is full.` });
-            }
-        }
-        else if (newStatus !== 'in') {
-            const statusChanged = newStatus !== playerToUpdate.status;
-            updatedPlayers = updatedPlayers.map(p => p.id === playerId ? { ...p, status: newStatus, waitingTimestamp: null } : p);
-            
-            if (statusChanged) {
-              showToast({ title: `Status Updated`, description: `${playerToUpdate.name} is now ${newStatus}.` });
-            }
-
-            if (isCurrentlyIn) {
-                const waitingList = updatedPlayers
-                    .filter(p => p.status === 'waiting')
-                    .sort((a, b) => (a.waitingTimestamp || 0) - (b.waitingTimestamp || 0));
-
-                if (waitingList.length > 0) {
-                    const playerToPromote = waitingList[0];
-                    updatedPlayers = updatedPlayers.map(p => p.id === playerToPromote.id ? { ...p, status: 'in', waitingTimestamp: null } : p);
-                    showToast({ title: "Player Promoted!", description: `${playerToPromote.name} moved from waiting list to 'in'.` });
-                }
-            }
-        }
-
-        return updatedPlayers;
-    });
-};
 
   const handleDraftTeams = (method: "points" | "manual") => {
     if (playersIn.length < 2) {
@@ -642,6 +647,9 @@ export default function Home() {
                             <h3 className="text-lg font-semibold flex items-center gap-2 mb-2 text-green-500">
                                 <Users /> Confirmed Players ({playersIn.length}/{MAX_PLAYERS_IN})
                             </h3>
+                             <p className="text-sm text-muted-foreground mb-4">
+                                ({rosterInCount} Roster, {guestsInCount} Guests)
+                            </p>
                             <PlayerLeaderboard players={playersIn} onSetAvailability={handleSetAvailability} gamePhase={gamePhase} />
                         </div>
 
@@ -651,6 +659,9 @@ export default function Home() {
                                 <h3 className="text-lg font-semibold flex items-center gap-2 mb-2 text-amber-500">
                                     <Clock /> Waiting List ({playersWaiting.length})
                                 </h3>
+                                <p className="text-sm text-muted-foreground mb-4">
+                                  ({rosterWaitingCount} Roster, {guestsWaitingCount} Guests)
+                                </p>
                                 <PlayerLeaderboard players={playersWaiting} onSetAvailability={handleSetAvailability} gamePhase={gamePhase} />
                             </div>
                         )}
@@ -658,7 +669,7 @@ export default function Home() {
                         <div>
                             <Separator className="my-4"/>
                             <h3 className="text-lg font-semibold flex items-center gap-2 mb-2 text-muted-foreground">
-                                Undecided / Out
+                                <UserX/> Undecided / Out
                             </h3>
                             <PlayerLeaderboard players={otherPlayers} onSetAvailability={handleSetAvailability} gamePhase={gamePhase} />
                         </div>
@@ -821,5 +832,3 @@ export default function Home() {
     </>
   );
 }
-
-    
