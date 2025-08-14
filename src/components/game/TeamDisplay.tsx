@@ -1,6 +1,7 @@
+
 "use client";
 
-import type { Player, Team, Result, Penalty } from "@/types";
+import type { Player, Team, Result, Penalty, Settings } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Shield, Trophy, Clock, UserX } from "lucide-react";
@@ -20,18 +21,21 @@ interface TeamDisplayProps {
   penalties: Record<string, Penalty>;
   onSetPenalty: (playerId: string, penalty: Penalty) => void;
   isLocked: boolean;
+  settings: Settings;
 }
 
 const PenaltyIcons = ({ 
   playerId, 
   currentPenalty, 
   onSetPenalty,
-  isLocked 
+  isLocked,
+  settings
 } : {
   playerId: string,
   currentPenalty: Penalty,
   onSetPenalty: (playerId: string, penalty: Penalty) => void,
-  isLocked: boolean
+  isLocked: boolean,
+  settings: Settings
 }) => {
   if (isLocked) {
     return (
@@ -60,7 +64,7 @@ const PenaltyIcons = ({
             </Button>
           </TooltipTrigger>
           <TooltipContent>
-            <p>Mark as Late (-2 Pts)</p>
+            <p>Mark as Late (-{settings.latePenalty} Pts)</p>
           </TooltipContent>
         </Tooltip>
         <Tooltip>
@@ -78,7 +82,7 @@ const PenaltyIcons = ({
             </Button>
           </TooltipTrigger>
           <TooltipContent>
-            <p>Mark as No-Show (-3 Pts)</p>
+            <p>Mark as No-Show (-{settings.noShowPenalty} Pts)</p>
           </TooltipContent>
         </Tooltip>
       </div>
@@ -95,6 +99,7 @@ const TeamCard = ({
   penalties,
   onSetPenalty,
   isLocked,
+  settings
 }: {
   team: Player[];
   title: string;
@@ -104,6 +109,7 @@ const TeamCard = ({
   penalties: Record<string, Penalty>;
   onSetPenalty: (playerId: string, penalty: Penalty) => void;
   isLocked: boolean;
+  settings: Settings;
 }) => (
   <Card className={cn(
       "transition-all duration-300",
@@ -136,6 +142,7 @@ const TeamCard = ({
               currentPenalty={penalties[player.id]}
               onSetPenalty={onSetPenalty}
               isLocked={isLocked}
+              settings={settings}
             />
             <div className="font-mono text-sm text-muted-foreground w-14 text-right">
               {player.points} pts
@@ -147,7 +154,7 @@ const TeamCard = ({
   </Card>
 );
 
-export function TeamDisplay({ teams, winner, penalties, onSetPenalty, isLocked }: TeamDisplayProps) {
+export function TeamDisplay({ teams, winner, penalties, onSetPenalty, isLocked, settings }: TeamDisplayProps) {
   const isDraw = winner === "Draw";
   return (
     <div className="space-y-6">
@@ -160,6 +167,7 @@ export function TeamDisplay({ teams, winner, penalties, onSetPenalty, isLocked }
         penalties={penalties}
         onSetPenalty={onSetPenalty}
         isLocked={isLocked}
+        settings={settings}
       />
       <TeamCard
         team={teams.teamB}
@@ -170,6 +178,7 @@ export function TeamDisplay({ teams, winner, penalties, onSetPenalty, isLocked }
         penalties={penalties}
         onSetPenalty={onSetPenalty}
         isLocked={isLocked}
+        settings={settings}
       />
     </div>
   );

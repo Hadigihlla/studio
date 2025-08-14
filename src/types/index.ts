@@ -1,3 +1,4 @@
+
 export type PlayerStatus = "in" | "out" | "undecided" | "waiting";
 export type Result = "A" | "B" | "Draw";
 export type Form = ('W' | 'D' | 'L')[];
@@ -34,4 +35,9 @@ export interface Match {
     scoreA: number;
     scoreB: number;
     penalties: Record<string, Penalty>;
+}
+
+export interface Settings {
+  latePenalty: number;
+  noShowPenalty: number;
 }

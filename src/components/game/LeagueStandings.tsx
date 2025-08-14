@@ -13,7 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash, MoreVertical, Plus, Trophy, Download } from "lucide-react";
+import { Edit, Trash, MoreVertical, Plus, Trophy, Download, Settings } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,9 +39,10 @@ interface LeagueStandingsProps {
   onEditPlayer: (player: Player) => void;
   onDeletePlayer: (playerId: string) => void;
   onAddPlayer: () => void;
+  onOpenSettings: () => void;
 }
 
-export function LeagueStandings({ players, onEditPlayer, onDeletePlayer, onAddPlayer }: LeagueStandingsProps) {
+export function LeagueStandings({ players, onEditPlayer, onDeletePlayer, onAddPlayer, onOpenSettings }: LeagueStandingsProps) {
   const printRef = useRef<HTMLDivElement>(null);
 
   const getRankContent = (rank: number) => {
@@ -76,13 +77,21 @@ export function LeagueStandings({ players, onEditPlayer, onDeletePlayer, onAddPl
     <>
       <Card className="no-print">
           <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="flex items-center gap-2 font-headline">
-                  <Trophy className="text-primary"/>
-                  League Standings
-              </CardTitle>
-              <Button onClick={onAddPlayer} size="sm">
-                  <Plus className="mr-2" /> Add Player
-              </Button>
+              <div className="flex items-center gap-4">
+                <CardTitle className="flex items-center gap-2 font-headline">
+                    <Trophy className="text-primary"/>
+                    League Standings
+                </CardTitle>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button onClick={onOpenSettings} size="icon" variant="outline">
+                    <Settings className="h-4 w-4" />
+                    <span className="sr-only">Open Settings</span>
+                </Button>
+                <Button onClick={onAddPlayer} size="sm">
+                    <Plus className="mr-2" /> Add Player
+                </Button>
+              </div>
           </CardHeader>
           <CardContent>
               <div className="w-full overflow-auto">

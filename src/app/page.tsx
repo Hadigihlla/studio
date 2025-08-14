@@ -4,7 +4,7 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import html2canvas from "html2canvas";
 import { format } from "date-fns";
-import type { Player, PlayerStatus, Team, Match, Result, Penalty } from "@/types";
+import type { Player, PlayerStatus, Team, Match, Result, Penalty, Settings } from "@/types";
 import { Header } from "@/components/game/Header";
 import { UpcomingGame } from "@/components/game/UpcomingGame";
 import { PlayerLeaderboard } from "@/components/game/PlayerLeaderboard";
@@ -19,11 +19,17 @@ import { MatchHistory } from "@/components/game/MatchHistory";
 import { PlayerDialog } from "@/components/game/PlayerDialog";
 import { Separator } from "@/components/ui/separator";
 import { LeagueStandings } from "@/components/game/LeagueStandings";
+import { SettingsDialog } from "@/components/game/SettingsDialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { initialPlayers } from "@/lib/initial-players";
 import { cn } from "@/lib/utils";
 
 const MAX_PLAYERS_IN = 14;
+
+const defaultSettings: Settings = {
+  latePenalty: 2,
+  noShowPenalty: 3,
+};
 
 export default function Home() {
   const [players, setPlayers] = useState<Player[]>([]);
@@ -33,11 +39,13 @@ export default function Home() {
   const [winner, setWinner] = useState<Result | null>(null);
   const [matchHistory, setMatchHistory] = useState<Match[]>([]);
   const [isPlayerDialogOpen, setIsPlayerDialogOpen] = useState(false);
+  const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false);
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
   const [penalties, setPenalties] = useState<Record<string, Penalty>>({});
   const [scores, setScores] = useState<{ teamA: number; teamB: number }>({ teamA: 0, teamB: 0 });
   const [isLoading, setIsLoading] = useState(true);
   const [matchToPrint, setMatchToPrint] = useState<Match | null>(null);
+  const [settings, setSettings] = useState<Settings>(defaultSettings);
   const printResultRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -51,6 +59,7 @@ export default function Home() {
     try {
       const savedPlayers = localStorage.getItem("players");
       const savedMatches = localStorage.getItem("matchHistory");
+      const savedSettings = localStorage.getItem("settings");
 
       if (savedPlayers) {
         setPlayers(JSON.parse(savedPlayers));
@@ -62,6 +71,11 @@ export default function Home() {
       if (savedMatches) {
         setMatchHistory(JSON.parse(savedMatches));
       }
+
+      if (savedSettings) {
+        setSettings(JSON.parse(savedSettings));
+      }
+
     } catch (error) {
         console.error("Failed to load data from localStorage", error);
         showToast({
@@ -80,6 +94,7 @@ export default function Home() {
         try {
             localStorage.setItem("players", JSON.stringify(players));
             localStorage.setItem("matchHistory", JSON.stringify(matchHistory));
+            localStorage.setItem("settings", JSON.stringify(settings));
         } catch (error) {
             console.error("Failed to save data to localStorage", error);
             showToast({
@@ -89,7 +104,7 @@ export default function Home() {
             });
         }
     }
-  }, [players, matchHistory, isLoading, showToast]);
+  }, [players, matchHistory, settings, isLoading, showToast]);
 
   const playersWithPenalties = useMemo(() => {
     const penaltyData = players.map(player => {
@@ -99,9 +114,9 @@ export default function Home() {
         matchHistory.forEach(match => {
             if (match.penalties && match.penalties[player.id]) {
                 if (match.penalties[player.id] === 'late') {
-                    latePenalties += 2;
+                    latePenalties += settings.latePenalty;
                 } else if (match.penalties[player.id] === 'no-show') {
-                    noShowPenalties += 3;
+                    noShowPenalties += settings.noShowPenalty;
                 }
             }
         });
@@ -114,7 +129,7 @@ export default function Home() {
     });
 
     return penaltyData.sort((a, b) => b.points - a.points);
-  }, [players, matchHistory]);
+  }, [players, matchHistory, settings]);
 
   const sortedPlayers = useMemo(() => {
     return playersWithPenalties.sort((a, b) => b.points - a.points);
@@ -204,6 +219,12 @@ export default function Home() {
       toast({ title: "Player Added", description: `${newPlayer.name} has joined the roster.` });
     }
     setIsPlayerDialogOpen(false);
+  };
+  
+  const handleSaveSettings = (newSettings: Settings) => {
+    setSettings(newSettings);
+    toast({ title: "Settings Saved", description: "Penalty points have been updated." });
+    setIsSettingsDialogOpen(false);
   };
 
   const handleDeletePlayer = (playerId: string) => {
@@ -375,7 +396,7 @@ export default function Home() {
         Object.entries(penalties).forEach(([playerId, penalty]) => {
             const playerIndex = tempPlayers.findIndex(p => p.id === playerId);
             if (playerIndex > -1 && penalty) {
-                const deduction = penalty === 'late' ? 2 : 3;
+                const deduction = penalty === 'late' ? settings.latePenalty : settings.noShowPenalty;
                 penaltyMessages.push(`${tempPlayers[playerIndex].name} -${deduction}pts`);
                 tempPlayers[playerIndex] = {
                     ...tempPlayers[playerIndex],
@@ -464,7 +485,7 @@ export default function Home() {
         Object.entries(matchToDelete.penalties || {}).forEach(([playerId, penalty]) => {
             const player = playerMap.get(playerId);
             if (player && penalty) {
-                const deduction = penalty === 'late' ? 2 : 3;
+                const deduction = penalty === 'late' ? settings.latePenalty : settings.noShowPenalty;
                 player.points += deduction;
             }
         });
@@ -607,6 +628,7 @@ export default function Home() {
                     penalties={penalties}
                     onSetPenalty={handleSetPenalty}
                     isLocked={gamePhase === 'results'}
+                    settings={settings}
                   />
                 )}
               </div>
@@ -646,6 +668,7 @@ export default function Home() {
               onEditPlayer={handleOpenPlayerDialog}
               onDeletePlayer={handleDeletePlayer}
               onAddPlayer={() => handleOpenPlayerDialog(null)}
+              onOpenSettings={() => setIsSettingsDialogOpen(true)}
             />
           </TabsContent>
 
@@ -659,6 +682,12 @@ export default function Home() {
         onOpenChange={setIsPlayerDialogOpen}
         onSave={handleSavePlayer}
         player={editingPlayer}
+      />
+      <SettingsDialog
+        isOpen={isSettingsDialogOpen}
+        onOpenChange={setIsSettingsDialogOpen}
+        onSave={handleSaveSettings}
+        settings={settings}
       />
       {matchToPrint && (
         <div className="printable-area" ref={printResultRef}>
@@ -729,5 +758,3 @@ export default function Home() {
     </>
   );
 }
-
-    
