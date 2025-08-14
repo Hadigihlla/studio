@@ -38,8 +38,8 @@ export default function Home() {
   const [scores, setScores] = useState<{ teamA: number; teamB: number }>({ teamA: 0, teamB: 0 });
   const [isLoading, setIsLoading] = useState(true);
   const [matchToPrint, setMatchToPrint] = useState<Match | null>(null);
-  const { toast } = useToast();
   const printResultRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
 
 
   const showToast = useCallback((props: Parameters<typeof toast>[0]) => {
@@ -133,6 +133,50 @@ export default function Home() {
     const assignedIds = new Set([...manualTeams.teamA.map(p => p.id), ...manualTeams.teamB.map(p => p.id)]);
     return playersIn.filter(p => !assignedIds.has(p.id));
   }, [playersIn, manualTeams, gamePhase]);
+
+  const penaltiesInPrintableMatch = useMemo(() => {
+    if (!matchToPrint) return [];
+    return Object.entries(matchToPrint.penalties || {})
+      .map(([playerId, penalty]) => {
+        if (!penalty) return null;
+        const teamAPlayer = matchToPrint.teams.teamA.find(p => p.id === playerId);
+        const teamBPlayer = matchToPrint.teams.teamB.find(p => p.id === playerId);
+        const playerName = teamAPlayer?.name || teamBPlayer?.name;
+        if (!playerName) return null;
+        return { name: playerName, type: penalty };
+      })
+      .filter((p): p is { name: string; type: NonNullable<Penalty> } => p !== null);
+  }, [matchToPrint]);
+
+  useEffect(() => {
+    if (matchToPrint && printResultRef.current) {
+        html2canvas(printResultRef.current, {
+            scale: 2,
+            useCORS: true, 
+            backgroundColor: '#020817'
+        }).then(canvas => {
+            const link = document.createElement('a');
+            link.download = `hirafus-league-result-${matchToPrint.id}.jpg`;
+            link.href = canvas.toDataURL('image/jpeg', 0.9);
+            link.click();
+            setMatchToPrint(null); // Reset after download
+        });
+    }
+  }, [matchToPrint]);
+
+  if (isLoading) {
+    return (
+        <div className="flex justify-center items-center h-screen no-print">
+            <div className="flex flex-col items-center gap-4">
+                <svg className="animate-spin h-10 w-10 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <p className="text-muted-foreground">Loading League Data...</p>
+            </div>
+        </div>
+    )
+  }
 
   const handleOpenPlayerDialog = (player: Player | null) => {
     setEditingPlayer(player);
@@ -495,51 +539,6 @@ export default function Home() {
   const handleDownloadMatchResult = (match: Match) => {
     setMatchToPrint(match);
   };
-  
-  useEffect(() => {
-    if (matchToPrint && printResultRef.current) {
-        html2canvas(printResultRef.current, {
-            scale: 2,
-            useCORS: true, 
-            backgroundColor: '#020817'
-        }).then(canvas => {
-            const link = document.createElement('a');
-            link.download = `hirafus-league-result-${matchToPrint.id}.jpg`;
-            link.href = canvas.toDataURL('image/jpeg', 0.9);
-            link.click();
-            setMatchToPrint(null); // Reset after download
-        });
-    }
-  }, [matchToPrint]);
-
-
-  if (isLoading) {
-    return (
-        <div className="flex justify-center items-center h-screen no-print">
-            <div className="flex flex-col items-center gap-4">
-                <svg className="animate-spin h-10 w-10 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                <p className="text-muted-foreground">Loading League Data...</p>
-            </div>
-        </div>
-    )
-  }
-
-  const penaltiesInPrintableMatch = useMemo(() => {
-    if (!matchToPrint) return [];
-    return Object.entries(matchToPrint.penalties || {})
-      .map(([playerId, penalty]) => {
-        if (!penalty) return null;
-        const teamAPlayer = matchToPrint.teams.teamA.find(p => p.id === playerId);
-        const teamBPlayer = matchToPrint.teams.teamB.find(p => p.id === playerId);
-        const playerName = teamAPlayer?.name || teamBPlayer?.name;
-        if (!playerName) return null;
-        return { name: playerName, type: penalty };
-      })
-      .filter(Boolean);
-  }, [matchToPrint]);
 
   return (
     <>
@@ -730,3 +729,5 @@ export default function Home() {
     </>
   );
 }
+
+    
