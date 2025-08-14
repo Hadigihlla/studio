@@ -4,6 +4,7 @@
 import type { Player, PlayerStatus } from "@/types";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Clock, X } from "lucide-react";
 import { Badge } from "../ui/badge";
 import { cn } from "@/lib/utils";
@@ -87,7 +88,13 @@ export function PlayerLeaderboard({ players, onSetAvailability, gamePhase, onAss
             {players.map((player) => (
               <TableRow key={player.id}>
                 <TableCell>
-                  <div className="font-semibold">{player.name}</div>
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-8 w-8">
+                       <AvatarImage src={player.photoURL} alt={player.name} />
+                       <AvatarFallback>{player.name.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    <span className="font-semibold">{player.name}</span>
+                  </div>
                 </TableCell>
                 <TableCell className="text-center font-mono font-bold text-primary">
                   {player.points}

@@ -4,7 +4,7 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import html2canvas from "html2canvas";
 import { format } from "date-fns";
-import type { Player, PlayerStatus, Team, Match, Result, Penalty, Settings } from "@/types";
+import type { Player, PlayerStatus, Team, Match, Result, Penalty, Settings, MatchPlayer } from "@/types";
 import { Header } from "@/components/game/Header";
 import { UpcomingGame } from "@/components/game/UpcomingGame";
 import { PlayerLeaderboard } from "@/components/game/PlayerLeaderboard";
@@ -105,6 +105,20 @@ export default function Home() {
         }
     }
   }, [players, matchHistory, settings, isLoading, showToast]);
+  
+  const penaltiesInPrintableMatch = useMemo(() => {
+    if (!matchToPrint) return [];
+    return Object.entries(matchToPrint.penalties || {})
+      .map(([playerId, penalty]) => {
+        if (!penalty) return null;
+        const teamAPlayer = matchToPrint.teams.teamA.find(p => p.id === playerId);
+        const teamBPlayer = matchToPrint.teams.teamB.find(p => p.id === playerId);
+        const player = teamAPlayer || teamBPlayer;
+        if (!player) return null;
+        return { name: player.name, type: penalty, photoURL: player.photoURL };
+      })
+      .filter((p): p is { name: string; type: NonNullable<Penalty>; photoURL?: string } => p !== null);
+  }, [matchToPrint]);
 
   const playersWithPenalties = useMemo(() => {
     const penaltyData = players.map(player => {
@@ -149,20 +163,6 @@ export default function Home() {
     return playersIn.filter(p => !assignedIds.has(p.id));
   }, [playersIn, manualTeams, gamePhase]);
 
-  const penaltiesInPrintableMatch = useMemo(() => {
-    if (!matchToPrint) return [];
-    return Object.entries(matchToPrint.penalties || {})
-      .map(([playerId, penalty]) => {
-        if (!penalty) return null;
-        const teamAPlayer = matchToPrint.teams.teamA.find(p => p.id === playerId);
-        const teamBPlayer = matchToPrint.teams.teamB.find(p => p.id === playerId);
-        const playerName = teamAPlayer?.name || teamBPlayer?.name;
-        if (!playerName) return null;
-        return { name: playerName, type: penalty };
-      })
-      .filter((p): p is { name: string; type: NonNullable<Penalty> } => p !== null);
-  }, [matchToPrint]);
-
   useEffect(() => {
     if (matchToPrint && printResultRef.current) {
         html2canvas(printResultRef.current, {
@@ -200,13 +200,14 @@ export default function Home() {
 
   const handleSavePlayer = (playerData: Omit<Player, 'id' | 'status' | 'matchesPlayed' | 'wins' | 'draws' | 'losses' | 'form' | 'waitingTimestamp'> & { id?: string }) => {
     if (playerData.id) { // Editing existing player
-      setPlayers(prev => prev.map(p => p.id === playerData.id ? { ...p, name: playerData.name, points: playerData.points } : p));
+      setPlayers(prev => prev.map(p => p.id === playerData.id ? { ...p, name: playerData.name, points: playerData.points, photoURL: playerData.photoURL } : p));
       toast({ title: "Player Updated", description: `${playerData.name}'s details have been saved.` });
     } else { // Adding new player
       const newPlayer: Player = {
         id: `p${Date.now()}`,
         name: playerData.name,
         points: playerData.points,
+        photoURL: playerData.photoURL,
         status: 'undecided',
         matchesPlayed: 0,
         wins: 0,
@@ -428,8 +429,8 @@ export default function Home() {
       id: `m${Date.now()}`,
       date: new Date().toISOString(),
       teams: {
-        teamA: teams.teamA.map(p => ({id: p.id, name: p.name})),
-        teamB: teams.teamB.map(p => ({id: p.id, name: p.name}))
+        teamA: teams.teamA.map(p => ({id: p.id, name: p.name, photoURL: p.photoURL})),
+        teamB: teams.teamB.map(p => ({id: p.id, name: p.name, photoURL: p.photoURL}))
       },
       result: result,
       scoreA: scores.teamA,

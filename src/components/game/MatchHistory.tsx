@@ -1,8 +1,9 @@
 
 "use client";
 
-import type { Match } from "@/types";
+import type { Match, MatchPlayer, Penalty } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {
   Accordion,
   AccordionContent,
@@ -30,13 +31,16 @@ interface MatchHistoryProps {
   onDownloadMatch: (match: Match) => void;
 }
 
-const PlayerListItem = ({ playerName, penalty }: { playerName: string, penalty: 'late' | 'no-show' | undefined }) => {
-    if (!playerName) return null;
+const PlayerListItem = ({ player, penalty }: { player: MatchPlayer, penalty: Penalty }) => {
+    if (!player) return null;
     return (
         <li className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-                <Users className="w-4 h-4" />
-                {playerName}
+                <Avatar className="h-6 w-6">
+                    <AvatarImage src={player.photoURL} alt={player.name} />
+                    <AvatarFallback>{player.name.charAt(0)}</AvatarFallback>
+                </Avatar>
+                {player.name}
             </div>
             {penalty === 'late' && <Clock className="w-4 h-4 text-orange-400" />}
             {penalty === 'no-show' && <UserX className="w-4 h-4 text-red-500" />}
@@ -87,13 +91,13 @@ export function MatchHistory({ matches, onDeleteMatch, onDownloadMatch }: MatchH
                             <div>
                             <h4 className="font-semibold flex items-center gap-2 mb-2 text-blue-400"><Shield/>Team A</h4>
                             <ul className="space-y-1 text-sm text-muted-foreground">
-                                {match.teams.teamA.map(p => <PlayerListItem key={p.id} playerName={p.name} penalty={match.penalties?.[p.id]} />)}
+                                {match.teams.teamA.map(p => <PlayerListItem key={p.id} player={p} penalty={match.penalties?.[p.id]} />)}
                             </ul>
                             </div>
                             <div>
                                 <h4 className="font-semibold flex items-center gap-2 mb-2 text-red-400"><Shield/>Team B</h4>
                             <ul className="space-y-1 text-sm text-muted-foreground">
-                                {match.teams.teamB.map(p => <PlayerListItem key={p.id} playerName={p.name} penalty={match.penalties?.[p.id]} />)}
+                                {match.teams.teamB.map(p => <PlayerListItem key={p.id} player={p} penalty={match.penalties?.[p.id]} />)}
                             </ul>
                             </div>
                         </div>

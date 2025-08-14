@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Edit, Trash, MoreVertical, Plus, Trophy, Download, Settings } from "lucide-react";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -126,7 +127,13 @@ export function LeagueStandings({ players, onEditPlayer, onDeletePlayer, onAddPl
                             </div>
                             </TableCell>
                             <TableCell>
-                                <div className="font-semibold">{player.name}</div>
+                                <div className="flex items-center gap-3">
+                                  <Avatar className="h-8 w-8">
+                                    <AvatarImage src={player.photoURL} alt={player.name} />
+                                    <AvatarFallback>{player.name.charAt(0)}</AvatarFallback>
+                                  </Avatar>
+                                  <span className="font-semibold">{player.name}</span>
+                                </div>
                             </TableCell>
                             <TableCell className="text-center font-mono">{player.matchesPlayed}</TableCell>
                             <TableCell className="text-center font-mono">{player.wins}</TableCell>
@@ -219,7 +226,13 @@ export function LeagueStandings({ players, onEditPlayer, onDeletePlayer, onAddPl
                                 </div>
                             </TableCell>
                             <TableCell>
-                                <div className="font-semibold text-lg">{player.name}</div>
+                                <div className="flex items-center gap-3">
+                                  <Avatar className="h-8 w-8">
+                                    <AvatarImage src={player.photoURL} alt={player.name} />
+                                    <AvatarFallback>{player.name.charAt(0)}</AvatarFallback>
+                                  </Avatar>
+                                  <span className="font-semibold text-lg">{player.name}</span>
+                                </div>
                             </TableCell>
                             <TableCell className="text-center font-mono text-base">{player.matchesPlayed}</TableCell>
                             <TableCell className="text-center font-mono text-base">{player.wins}</TableCell>

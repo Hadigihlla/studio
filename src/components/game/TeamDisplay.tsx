@@ -3,7 +3,7 @@
 
 import type { Player, Team, Result, Penalty, Settings } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Shield, Trophy, Clock, UserX } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -132,6 +132,7 @@ const TeamCard = ({
         >
           <div className="flex items-center gap-3">
             <Avatar>
+              <AvatarImage src={player.photoURL} alt={player.name} />
               <AvatarFallback>{player.name.charAt(0)}</AvatarFallback>
             </Avatar>
             <span className="font-medium">{player.name}</span>

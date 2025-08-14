@@ -14,6 +14,7 @@ export interface Player {
   draws: number;
   losses: number;
   form: Form;
+  photoURL?: string;
   waitingTimestamp?: number | null;
   latePenalties?: number;
   noShowPenalties?: number;
@@ -24,12 +25,18 @@ export interface Team {
   teamB: Player[];
 }
 
+export interface MatchPlayer {
+  id: string;
+  name: string;
+  photoURL?: string;
+}
+
 export interface Match {
     id: string;
     date: string;
-    teams: { // Storing a simplified Player object to avoid nesting full player data in matches
-      teamA: { id: string, name: string }[];
-      teamB: { id: string, name: string }[];
+    teams: { 
+      teamA: MatchPlayer[];
+      teamB: MatchPlayer[];
     };
     result: Result;
     scoreA: number;
