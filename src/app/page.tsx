@@ -54,7 +54,7 @@ export default function Home() {
 
 
   const showToast = useCallback((props: Parameters<typeof toast>[0]) => {
-    toast(props);
+    setTimeout(() => toast(props), 0);
   }, [toast]);
 
   // Load state from localStorage on initial mount
@@ -164,17 +164,34 @@ export default function Home() {
         waitingTimestamp: null,
     }));
   }, [plusOneCount, sortedPlayers]);
+  
+  const rosterInCount = useMemo(() => sortedPlayers.filter(p => p.status === 'in').length, [sortedPlayers]);
+  const totalInCount = useMemo(() => rosterInCount + plusOneCount, [rosterInCount, plusOneCount]);
+
 
   const playersIn = useMemo(() => {
     const rosterIn = sortedPlayers.filter(p => p.status === 'in');
-    return [...rosterIn, ...guestPlayers];
-  }, [sortedPlayers, guestPlayers]);
+    
+    const availableGuestSlots = MAX_PLAYERS_IN - rosterIn.length;
+    const guestsIn = availableGuestSlots > 0 ? guestPlayers.slice(0, availableGuestSlots) : [];
+    
+    return [...rosterIn, ...guestsIn];
+  }, [sortedPlayers, guestPlayers, rosterInCount]);
 
   const playersWaiting = useMemo(() => {
-    return sortedPlayers
+     const rosterWaiting = sortedPlayers
         .filter(p => p.status === 'waiting')
         .sort((a, b) => (a.waitingTimestamp || 0) - (b.waitingTimestamp || 0));
-  }, [sortedPlayers]);
+
+    const rosterInCount = sortedPlayers.filter(p => p.status === 'in').length;
+    const availableGuestSlots = MAX_PLAYERS_IN - rosterInCount;
+    const guestsWaiting = availableGuestSlots < guestPlayers.length
+      ? guestPlayers.slice(availableGuestSlots > 0 ? availableGuestSlots : 0)
+      : [];
+
+    return [...rosterWaiting, ...guestsWaiting];
+  }, [sortedPlayers, guestPlayers, rosterInCount]);
+
   const otherPlayers = useMemo(() => sortedPlayers.filter(p => p.status === 'undecided' || p.status === 'out'), [sortedPlayers]);
   
   const unassignedPlayers = useMemo(() => {
@@ -196,6 +213,7 @@ export default function Home() {
       })
       .filter((p): p is { name: string; type: NonNullable<Penalty>; photoURL?: string } => p !== null);
   }, [matchToPrint]);
+  
 
   useEffect(() => {
     if (matchToPrint && printResultRef.current) {
@@ -284,21 +302,20 @@ export default function Home() {
         const playerToUpdate = currentPlayers.find(p => p.id === playerId);
         if (!playerToUpdate) return currentPlayers;
 
-        const rosterInCount = currentPlayers.filter(p => p.status === 'in').length;
+        const currentRosterInCount = currentPlayers.filter(p => p.status === 'in').length;
+        const totalInWithGuests = currentRosterInCount + plusOneCount;
         const isCurrentlyIn = playerToUpdate.status === 'in';
         let updatedPlayers = [...currentPlayers];
 
-        // Handle setting status to 'in'
         if (newStatus === 'in') {
-            if (rosterInCount < MAX_PLAYERS_IN && !isCurrentlyIn) {
+            if (totalInWithGuests < MAX_PLAYERS_IN && !isCurrentlyIn) {
                 updatedPlayers = updatedPlayers.map(p => p.id === playerId ? { ...p, status: 'in', waitingTimestamp: null } : p);
                 showToast({ title: "You're In!", description: `${playerToUpdate.name} is confirmed.` });
-            } else if (rosterInCount >= MAX_PLAYERS_IN && !isCurrentlyIn) {
-                updatedPlayers = updatedPlayers.map(p => p.id === playerId ? { ...p, status: 'waiting', waitingTimestamp: Date.now() } : p);
-                showToast({ title: "Waiting List", description: `${playerToUpdate.name} added to waiting list.` });
+            } else if (!isCurrentlyIn) { // This covers both roster being full, or player already on waiting list
+                updatedPlayers = updatedPlayers.map(p => p.id === playerId ? { ...p, status: 'waiting', waitingTimestamp: p.waitingTimestamp || Date.now() } : p);
+                showToast({ title: "Waiting List", description: `${playerToUpdate.name} added to waiting list as the game is full.` });
             }
         }
-        // Handle setting status to 'out' or 'undecided'
         else if (newStatus !== 'in') {
             const statusChanged = newStatus !== playerToUpdate.status;
             updatedPlayers = updatedPlayers.map(p => p.id === playerId ? { ...p, status: newStatus, waitingTimestamp: null } : p);
@@ -307,7 +324,6 @@ export default function Home() {
               showToast({ title: `Status Updated`, description: `${playerToUpdate.name} is now ${newStatus}.` });
             }
 
-            // If a player who was 'in' drops out, promote from waiting list
             if (isCurrentlyIn) {
                 const waitingList = updatedPlayers
                     .filter(p => p.status === 'waiting')
@@ -599,8 +615,6 @@ export default function Home() {
     setMatchToPrint(match);
   };
   
-  const rosterInCount = sortedPlayers.filter(p => p.status === 'in').length;
-
   return (
     <>
       <main className="container mx-auto p-4 md:p-8 relative no-print">
@@ -626,7 +640,7 @@ export default function Home() {
                     <CardContent className="space-y-6">
                         <div>
                             <h3 className="text-lg font-semibold flex items-center gap-2 mb-2 text-green-500">
-                                <Users /> Confirmed Players ({rosterInCount}/{MAX_PLAYERS_IN} + {plusOneCount} Guests)
+                                <Users /> Confirmed Players ({playersIn.length}/{MAX_PLAYERS_IN})
                             </h3>
                             <PlayerLeaderboard players={playersIn} onSetAvailability={handleSetAvailability} gamePhase={gamePhase} />
                         </div>
@@ -653,6 +667,9 @@ export default function Home() {
                           count={plusOneCount}
                           setCount={setPlusOneCount}
                           maxGuests={MAX_GUESTS}
+                          rosterInCount={rosterInCount}
+                          maxPlayersIn={MAX_PLAYERS_IN}
+                          showToast={showToast}
                         />
                     </CardContent>
                   </Card>

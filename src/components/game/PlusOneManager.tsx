@@ -2,20 +2,39 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Minus, Plus, UserPlus } from "lucide-react";
+import type { Toast } from "@/hooks/use-toast";
 
 interface PlusOneManagerProps {
   count: number;
   setCount: (count: number) => void;
   maxGuests: number;
+  rosterInCount: number;
+  maxPlayersIn: number;
+  showToast: (props: Parameters<typeof Toast>[0]) => void;
 }
 
-export function PlusOneManager({ count, setCount, maxGuests }: PlusOneManagerProps) {
+export function PlusOneManager({ 
+  count, 
+  setCount, 
+  maxGuests,
+  rosterInCount,
+  maxPlayersIn,
+  showToast
+}: PlusOneManagerProps) {
+  
   const handleIncrement = () => {
     if (count < maxGuests) {
-      setCount(count + 1);
+      const newCount = count + 1;
+      const totalPlayersIfAdded = rosterInCount + newCount;
+      if (totalPlayersIfAdded > maxPlayersIn) {
+        showToast({
+          title: "Heads Up: Waiting List",
+          description: `Adding this guest will place them on the waiting list as the game is full.`
+        });
+      }
+      setCount(newCount);
     }
   };
 
@@ -59,7 +78,7 @@ export function PlusOneManager({ count, setCount, maxGuests }: PlusOneManagerPro
             </div>
         </div>
         <p className="text-sm text-muted-foreground mt-2">
-            Guests are included in the team draft but do not affect league standings.
+            Guests are included in the team draft but do not affect league standings. A max of {maxPlayersIn} total players (roster + guests) can be "In" for a match.
         </p>
     </div>
   );
