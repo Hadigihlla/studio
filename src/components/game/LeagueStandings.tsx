@@ -94,7 +94,7 @@ export function LeagueStandings({ players, onEditPlayer, onDeletePlayer, onAddPl
                 </Button>
               </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-0 md:p-6">
               <div className="w-full overflow-auto">
                   <Table>
                     <TableHeader>
@@ -183,7 +183,7 @@ export function LeagueStandings({ players, onEditPlayer, onDeletePlayer, onAddPl
                   </Table>
               </div>
           </CardContent>
-          <CardFooter className="flex justify-end">
+          <CardFooter className="flex justify-end p-2 md:p-6">
                 <Button onClick={handleDownload} variant="outline" size="sm">
                     <Download className="mr-2" /> Download Standings
                 </Button>

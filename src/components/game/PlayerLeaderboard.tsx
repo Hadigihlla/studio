@@ -27,14 +27,14 @@ const AvailabilityControls = ({ player, onSetAvailability }: { player: Player, o
 
     return (
         <div className="flex items-center justify-center space-x-2">
-             <Label htmlFor={`availability-${player.id}`} className={cn("font-semibold", !isPlayerIn && "text-muted-foreground/80")}>OUT</Label>
+             <Label htmlFor={`availability-${player.id}`} className={cn("text-xs font-semibold", !isPlayerIn && "text-muted-foreground/80")}>OUT</Label>
              <Switch
                 id={`availability-${player.id}`}
                 checked={isPlayerIn}
                 onCheckedChange={handleSwitchChange}
                 className="data-[state=checked]:bg-green-500"
              />
-             <Label htmlFor={`availability-${player.id}`} className={cn("font-semibold", isPlayerIn && "text-primary")}>IN</Label>
+             <Label htmlFor={`availability-${player.id}`} className={cn("text-xs font-semibold", isPlayerIn && "text-primary")}>IN</Label>
         </div>
     );
 };
@@ -71,7 +71,7 @@ export function PlayerLeaderboard({ players, onSetAvailability, gamePhase, onAss
             <TableRow>
               <TableHead>Player</TableHead>
               <TableHead className="text-center">Points</TableHead>
-              <TableHead className="text-center w-[150px]">
+              <TableHead className="text-center w-[120px] md:w-[150px]">
                 {showManualDraftControls ? 'Assign Team' : 'Status'}
               </TableHead>
             </TableRow>
@@ -86,19 +86,19 @@ export function PlayerLeaderboard({ players, onSetAvailability, gamePhase, onAss
             )}
             {players.map((player) => (
               <TableRow key={player.id}>
-                <TableCell>
-                  <div className="flex items-center gap-3">
+                <TableCell className="p-2 md:p-4">
+                  <div className="flex items-center gap-2 md:gap-3">
                     <Avatar className="h-8 w-8">
                        <AvatarImage src={player.photoURL} alt={player.name} />
                        <AvatarFallback>{player.name.charAt(0)}</AvatarFallback>
                     </Avatar>
-                    <span className="font-semibold">{player.name}</span>
+                    <span className="font-semibold text-sm md:text-base">{player.name}</span>
                   </div>
                 </TableCell>
-                <TableCell className="text-center font-mono font-bold text-primary">
+                <TableCell className="text-center font-mono font-bold text-primary p-2 md:p-4">
                   {player.isGuest ? '-' : player.points}
                 </TableCell>
-                <TableCell className="text-center">
+                <TableCell className="text-center p-2 md:p-4">
                     {showAvailabilityControls && !player.isGuest && <AvailabilityControls player={player} onSetAvailability={onSetAvailability} />}
                     {showManualDraftControls && <ManualDraftControls player={player} onAssignPlayer={onAssignPlayer} />}
                     {(!showAvailabilityControls || player.isGuest) && !showManualDraftControls && <StatusBadge player={player} />}
