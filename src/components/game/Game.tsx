@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
@@ -111,17 +112,22 @@ export function Game() {
 
   const penaltiesInPrintableMatch = useMemo(() => {
     if (!matchToPrint) return [];
+    
+    const allPlayersInMatch = [...matchToPrint.teams.teamA, ...matchToPrint.teams.teamB];
+
     return Object.entries(matchToPrint.penalties || {})
       .map(([playerId, penalty]) => {
         if (!penalty) return null;
-        const teamAPlayer = matchToPrint.teams.teamA.find(p => p.id === playerId);
-        const teamBPlayer = matchToPrint.teams.teamB.find(p => p.id === playerId);
-        const player = teamAPlayer || teamBPlayer;
+        
+        const player = allPlayersInMatch.find(p => p.id === playerId);
+
         if (!player || player.isGuest) return null; // Don't show penalties for guests
+
         return { name: player.name, type: penalty, photoURL: player.photoURL };
       })
       .filter((p): p is { name: string; type: NonNullable<Penalty>; photoURL?: string } => p !== null);
   }, [matchToPrint]);
+
 
     // Load state from localStorage on initial mount
   useEffect(() => {
@@ -444,8 +450,8 @@ export function Game() {
       id: `m${Date.now()}`,
       date: new Date().toISOString(),
       teams: {
-        teamA: teams.teamA.map(p => ({id: p.id, name: p.name, photoURL: p.photoURL, isGuest: p.isGuest})),
-        teamB: teams.teamB.map(p => ({id: p.id, name: p.name, photoURL: p.photoURL, isGuest: p.isGuest}))
+        teamA: teams.teamA.map(p => ({id: p.id, name: p.name, photoURL: p.photoURL, isGuest: !!p.isGuest})),
+        teamB: teams.teamB.map(p => ({id: p.id, name: p.name, photoURL: p.photoURL, isGuest: !!p.isGuest}))
       },
       result: result,
       scoreA: scores.teamA,
@@ -489,88 +495,78 @@ export function Game() {
     const matchToDelete = matchHistory.find(m => m.id === matchId);
     if (!matchToDelete) return;
 
-    setPlayers(currentPlayers => {
-        let tempPlayers = JSON.parse(JSON.stringify(currentPlayers));
+    // Create a deep copy to avoid direct state mutation issues
+    let updatedPlayers = JSON.parse(JSON.stringify(players)) as Player[];
+    const playerMap = new Map(updatedPlayers.map((p: Player) => [p.id, p]));
 
-        const allPlayerIdsInMatch = [
-            ...matchToDelete.teams.teamA.map(p => p.id),
-            ...matchToDelete.teams.teamB.map(p => p.id)
-        ];
-        const playerMap = new Map(tempPlayers.map((p: Player) => [p.id, p]));
+    const allPlayerIdsInMatch = [
+      ...matchToDelete.teams.teamA.map(p => p.id),
+      ...matchToDelete.teams.teamB.map(p => p.id)
+    ];
 
-        // 1. Revert penalty deductions from the deleted match
-        Object.entries(matchToDelete.penalties || {}).forEach(([playerId, penalty]) => {
-            const player = playerMap.get(playerId);
-            if (player && penalty && !player.isGuest) {
-                const deduction = penalty === 'late' ? settings.latePenalty : settings.noShowPenalty;
-                player.points += deduction;
-            }
-        });
-
-        // 2. Revert game result stats from the deleted match
-        allPlayerIdsInMatch.forEach(playerId => {
-            const player = playerMap.get(playerId);
-            if (!player || player.isGuest) return;
-
-            let result: 'W' | 'D' | 'L' | null = null;
-            const wasInTeamA = matchToDelete.teams.teamA.some(p => p.id === playerId);
-            const wasInTeamB = matchToDelete.teams.teamB.some(p => p.id === playerId);
-
-            if (wasInTeamA) {
-                result = matchToDelete.result === 'A' ? 'W' : matchToDelete.result === 'B' ? 'L' : 'D';
-            } else if (wasInTeamB) {
-                result = matchToDelete.result === 'B' ? 'W' : matchToDelete.result === 'A' ? 'L' : 'D';
-            }
-
-            if (result) {
-                // Revert stats
-                player.matchesPlayed -= 1;
-                if (result === 'W') player.wins -= 1;
-                else if (result === 'D') player.draws -= 1;
-                else if (result === 'L') player.losses -= 1;
-
-                // Revert points, accounting for no-show penalties
-                const wasNoShow = matchToDelete.penalties?.[playerId] === 'no-show';
-                const shouldRevertPoints = !(wasNoShow && (result === 'W' || result === 'D'));
-
-                if (shouldRevertPoints) {
-                    const pointsToRevert = result === 'W' ? 3 : result === 'D' ? 2 : 1;
-                    player.points -= pointsToRevert;
-                }
-                
-                // This is complex: we need to find the correct form to remove.
-                // The form is an array of the last 5 results. If this match is one of them, it should be removed.
-                // However, we don't store which match corresponds to which form entry.
-                // The simplest correct approach is to rebuild the form from the remaining match history.
-            }
-        });
-        
-        let finalPlayers = Array.from(playerMap.values());
-
-        // 3. Rebuild form for affected players from remaining match history
-        const remainingMatches = matchHistory.filter(m => m.id !== matchId);
-        
-        finalPlayers = finalPlayers.map(player => {
-            if (!player.isGuest && allPlayerIdsInMatch.includes(player.id)) {
-                 const newForm: ('W' | 'D' | 'L')[] = [];
-                 remainingMatches.forEach(match => {
-                     let result: 'W' | 'D' | 'L' | null = null;
-                     if (match.teams.teamA.some(p => p.id === player.id)) {
-                         result = match.result === 'A' ? 'W' : match.result === 'B' ? 'L' : 'D';
-                     } else if (match.teams.teamB.some(p => p.id === player.id)) {
-                         result = match.result === 'B' ? 'W' : match.result === 'A' ? 'L' : 'D';
-                     }
-                     if(result) newForm.unshift(result);
-                 });
-                 player.form = newForm.slice(0, 5);
-            }
-            return player;
-        });
-
-        return finalPlayers;
+    // 1. Revert penalty deductions from the deleted match
+    Object.entries(matchToDelete.penalties || {}).forEach(([playerId, penalty]) => {
+      const player = playerMap.get(playerId);
+      if (player && penalty && !player.isGuest) {
+        const deduction = penalty === 'late' ? settings.latePenalty : settings.noShowPenalty;
+        player.points += deduction;
+      }
     });
 
-    setMatchHistory(currentHistory => currentHistory.filter(m => m.id !== matchId));
+    // 2. Revert game result stats from the deleted match
+    allPlayerIdsInMatch.forEach(playerId => {
+      const player = playerMap.get(playerId);
+      if (!player || player.isGuest) return;
+
+      let result: 'W' | 'D' | 'L' | null = null;
+      if (matchToDelete.teams.teamA.some(p => p.id === playerId)) {
+        result = matchToDelete.result === 'A' ? 'W' : matchToDelete.result === 'B' ? 'L' : 'D';
+      } else if (matchToDelete.teams.teamB.some(p => p.id === playerId)) {
+        result = matchToDelete.result === 'B' ? 'W' : matchToDelete.result === 'A' ? 'L' : 'D';
+      }
+
+      if (result) {
+        // Revert stats
+        player.matchesPlayed = Math.max(0, player.matchesPlayed - 1);
+        if (result === 'W') player.wins = Math.max(0, player.wins - 1);
+        else if (result === 'D') player.draws = Math.max(0, player.draws - 1);
+        else if (result === 'L') player.losses = Math.max(0, player.losses - 1);
+
+        // Revert points, accounting for no-show penalties
+        const wasNoShow = matchToDelete.penalties?.[playerId] === 'no-show';
+        const shouldRevertPoints = !(wasNoShow && (result === 'W' || result === 'D'));
+
+        if (shouldRevertPoints) {
+          const pointsToRevert = result === 'W' ? 3 : result === 'D' ? 2 : 1;
+          player.points -= pointsToRevert;
+        }
+      }
+    });
+
+    const remainingMatches = matchHistory.filter(m => m.id !== matchId);
+    
+    // 3. Rebuild form for all affected players from the remaining (and now authoritative) match history
+    allPlayerIdsInMatch.forEach(playerId => {
+        const player = playerMap.get(playerId);
+        if (!player || player.isGuest) return;
+
+        const newForm: ('W' | 'D' | 'L')[] = [];
+        // Iterate matches from oldest to newest to build the form chronologically
+        [...remainingMatches].reverse().forEach(match => {
+            let result: 'W' | 'D' | 'L' | null = null;
+            if (match.teams.teamA.some(p => p.id === player.id)) {
+                result = match.result === 'A' ? 'W' : match.result === 'B' ? 'L' : 'D';
+            } else if (match.teams.teamB.some(p => p.id === player.id)) {
+                result = match.result === 'B' ? 'W' : match.result === 'A' ? 'L' : 'D';
+            }
+            if(result) newForm.push(result);
+        });
+        // The form should be the most recent 5, so we take the end of the built array
+        player.form = newForm.slice(-5).reverse();
+    });
+
+    setPlayers(Array.from(playerMap.values()));
+    setMatchHistory(remainingMatches);
     toast({ title: "Match Deleted", description: "The match has been removed and player stats have been reverted." });
   };
   

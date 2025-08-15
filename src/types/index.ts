@@ -19,16 +19,16 @@ export interface Player {
   waitingTimestamp?: number | null;
   latePenalties?: number;
   noShowPenalties?: number;
-  isGuest?: boolean;
+  isGuest?: false;
 }
 
-export interface GuestPlayer extends Player {
+export interface GuestPlayer extends Omit<Player, 'isGuest'> {
     isGuest: true;
 }
 
 export interface Team {
-  teamA: Player[];
-  teamB: Player[];
+  teamA: (Player | GuestPlayer)[];
+  teamB: (Player | GuestPlayer)[];
 }
 
 export interface MatchPlayer {
