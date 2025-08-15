@@ -55,21 +55,7 @@ export default function Home() {
   const showToast = useCallback((props: Parameters<typeof toast>[0]) => {
     toast(props);
   }, [toast]);
-
-  const penaltiesInPrintableMatch = useMemo(() => {
-    if (!matchToPrint) return [];
-    return Object.entries(matchToPrint.penalties || {})
-      .map(([playerId, penalty]) => {
-        if (!penalty) return null;
-        const teamAPlayer = matchToPrint.teams.teamA.find(p => p.id === playerId);
-        const teamBPlayer = matchToPrint.teams.teamB.find(p => p.id === playerId);
-        const player = teamAPlayer || teamBPlayer;
-        if (!player || player.isGuest) return null; // Don't show penalties for guests
-        return { name: player.name, type: penalty, photoURL: player.photoURL };
-      })
-      .filter((p): p is { name: string; type: NonNullable<Penalty>; photoURL?: string } => p !== null);
-  }, [matchToPrint]);
-
+  
   const playersWithPenalties = useMemo(() => {
     const penaltyData = players.map(player => {
         let latePenalties = 0;
@@ -98,7 +84,7 @@ export default function Home() {
   const sortedPlayers = useMemo(() => {
     return playersWithPenalties.sort((a, b) => b.points - a.points);
   }, [playersWithPenalties]);
-
+  
   const rosterInCount = useMemo(() => sortedPlayers.filter(p => p.status === 'in').length, [sortedPlayers]);
   
   const guestPlayers = useMemo(() => {
@@ -137,7 +123,7 @@ export default function Home() {
     
     const guestsWaiting = guestPlayers.filter(g => g.status === 'waiting');
 
-    return [...rosterWaiting, ...guestsWaiting];
+    return [...rosterWaiting, ...guestsWaiting].sort((a, b) => (a.waitingTimestamp || 0) - (b.waitingTimestamp || 0));
   }, [sortedPlayers, guestPlayers]);
   
   const rosterWaitingCount = useMemo(() => sortedPlayers.filter(p => p.status === 'waiting').length, [sortedPlayers]);
@@ -150,6 +136,20 @@ export default function Home() {
     const assignedIds = new Set([...manualTeams.teamA.map(p => p.id), ...manualTeams.teamB.map(p => p.id)]);
     return playersIn.filter(p => !assignedIds.has(p.id));
   }, [playersIn, manualTeams, gamePhase]);
+
+  const penaltiesInPrintableMatch = useMemo(() => {
+    if (!matchToPrint) return [];
+    return Object.entries(matchToPrint.penalties || {})
+      .map(([playerId, penalty]) => {
+        if (!penalty) return null;
+        const teamAPlayer = matchToPrint.teams.teamA.find(p => p.id === playerId);
+        const teamBPlayer = matchToPrint.teams.teamB.find(p => p.id === playerId);
+        const player = teamAPlayer || teamBPlayer;
+        if (!player || player.isGuest) return null; // Don't show penalties for guests
+        return { name: player.name, type: penalty, photoURL: player.photoURL };
+      })
+      .filter((p): p is { name: string; type: NonNullable<Penalty>; photoURL?: string } => p !== null);
+  }, [matchToPrint]);
 
     // Load state from localStorage on initial mount
   useEffect(() => {
@@ -239,14 +239,14 @@ export default function Home() {
         const playerToUpdate = currentPlayers.find(p => p.id === playerId);
         if (!playerToUpdate) return currentPlayers;
 
-        const currentRosterInCount = currentPlayers.filter(p => p.status === 'in').length;
-        const guestsInCount = guestPlayers.filter(g => g.status === 'in').length;
-        const totalIn = currentRosterInCount + guestsInCount;
-
+        const allCurrentPlayers = [...currentPlayers, ...guestPlayers];
+        const currentInCount = allCurrentPlayers.filter(p => p.status === 'in').length;
+        
         let updatedPlayers = [...currentPlayers];
 
         if (newStatus === 'in') {
-            if (totalIn < MAX_PLAYERS_IN) {
+            // Player wants to be IN
+            if (currentInCount < MAX_PLAYERS_IN) {
                 updatedPlayers = updatedPlayers.map(p => 
                     p.id === playerId ? { ...p, status: 'in', waitingTimestamp: null } : p
                 );
@@ -255,7 +255,8 @@ export default function Home() {
                     p.id === playerId ? { ...p, status: 'waiting', waitingTimestamp: p.waitingTimestamp || Date.now() } : p
                 );
             }
-        } else { // Player is setting status to 'out' or 'undecided'
+        } else { 
+            // Player is setting status to 'out' or 'undecided'
             const wasPlayerIn = playerToUpdate.status === 'in';
             updatedPlayers = updatedPlayers.map(p => 
                 p.id === playerId ? { ...p, status: newStatus, waitingTimestamp: null } : p
@@ -263,15 +264,19 @@ export default function Home() {
 
             // If a player who was 'in' drops out, promote someone from the waiting list
             if (wasPlayerIn) {
-                const rosterWaitingList = updatedPlayers
-                    .filter(p => p.status === 'waiting' && !p.isGuest)
+                const combinedPlayersForWaiting = [...updatedPlayers, ...guestPlayers];
+                const waitingList = combinedPlayersForWaiting
+                    .filter(p => p.status === 'waiting')
                     .sort((a, b) => (a.waitingTimestamp || 0) - (b.waitingTimestamp || 0));
 
-                if (rosterWaitingList.length > 0) {
-                    const playerToPromote = rosterWaitingList[0];
-                    updatedPlayers = updatedPlayers.map(p => 
-                        p.id === playerToPromote.id ? { ...p, status: 'in', waitingTimestamp: null } : p
-                    );
+                if (waitingList.length > 0) {
+                    const playerToPromote = waitingList[0];
+                    if (!playerToPromote.isGuest) {
+                        updatedPlayers = updatedPlayers.map(p => 
+                            p.id === playerToPromote.id ? { ...p, status: 'in', waitingTimestamp: null } : p
+                        );
+                    }
+                    // Guest promotion is handled by guestPlayers re-computation
                 }
             }
         }
