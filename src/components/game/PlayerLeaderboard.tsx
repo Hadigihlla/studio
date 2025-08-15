@@ -22,7 +22,9 @@ const AvailabilityControls = ({ player, onSetAvailability }: { player: Player, o
     const isPlayerIn = player.status === 'in' || player.status === 'waiting';
     
     const handleSwitchChange = (checked: boolean) => {
-        onSetAvailability(player.id, checked ? 'in' : 'out');
+        if (onSetAvailability) {
+            onSetAvailability(player.id, checked ? 'in' : 'out');
+        }
     };
 
     return (
