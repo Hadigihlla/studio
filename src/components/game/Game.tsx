@@ -311,41 +311,52 @@ export function Game() {
   };
 
   const handleDraftTeams = (method: "points" | "manual") => {
-    if (playersIn.length < 2) {
-      toast({ variant: "destructive", title: "Not Enough Players", description: "Need at least 2 players to draft teams." });
-      return;
-    }
-
     if (method === "manual") {
+      if (playersIn.length < 2) {
+          toast({ variant: "destructive", title: "Not Enough Players", description: "Need at least 2 players to draft teams manually." });
+          return;
+      }
       setManualTeams({ teamA: [], teamB: [] });
       setGamePhase("manual-draft");
       toast({ title: "Manual Draft", description: "Assign players to Team A or Team B." });
       return;
     }
 
-    // Clone players to avoid direct mutation
+    // Points-based draft
+    if (playersIn.length !== 14) {
+      toast({ variant: "destructive", title: "Incorrect Player Count", description: "Point-based draft requires exactly 14 players to be 'In'." });
+      return;
+    }
+    
     const rankedPlayersIn = [...playersIn].sort((a, b) => b.points - a.points);
     const teamA: (Player | GuestPlayer)[] = [];
     const teamB: (Player | GuestPlayer)[] = [];
+    
+    // Serpent/snake draft logic to ensure balanced teams of 7
+    let isTeamATurn = true;
+    const picks = [];
 
-    // Serpent/snake draft logic
-    let teamATotal = 0;
-    let teamBTotal = 0;
+    for (let i = 0; i < rankedPlayersIn.length; i++) {
+        picks.push(rankedPlayersIn[i]);
+    }
 
-    rankedPlayersIn.forEach((player) => {
-        // Assign player to the team with the lower total points
-        if (teamATotal <= teamBTotal) {
-            teamA.push(player);
-            teamATotal += player.points;
-        } else {
-            teamB.push(player);
-            teamBTotal += player.points;
+    // Distribute players 1-2-2-2-2-2-2-1
+    teamA.push(picks.shift()!);
+    teamB.push(picks.pop()!);
+
+    while(picks.length > 0) {
+        teamB.push(picks.shift()!);
+        teamA.push(picks.pop()!);
+        
+        if (picks.length > 0) {
+            teamA.push(picks.shift()!);
+            teamB.push(picks.pop()!);
         }
-    });
+    }
 
     setTeams({ teamA, teamB });
     setGamePhase("teams");
-    toast({ title: "Teams Drafted by Points!", description: "Team A and Team B have been selected." });
+    toast({ title: "Teams Drafted by Points!", description: "7 vs 7 teams have been selected." });
   };
 
   const handleAssignPlayer = (playerId: string, team: 'teamA' | 'teamB' | null) => {
@@ -865,3 +876,5 @@ export function Game() {
     </>
   );
 }
+
+    
