@@ -29,7 +29,9 @@ export function PlusOneManager({
   
   const handleIncrement = () => {
     if (guestPlayers.length < maxGuests) {
-      const isGameFull = playersInCount >= maxPlayersIn;
+      const currentlyInCount = playersInCount + guestPlayers.filter(g => g.status === 'in').length;
+      const isGameFull = currentlyInCount >= maxPlayersIn;
+      
       const newGuest: GuestPlayer = {
         id: `guest${Date.now()}`,
         name: `Guest ${guestPlayers.length + 1}`,
@@ -51,8 +53,6 @@ export function PlusOneManager({
 
   const handleDecrement = () => {
     if (guestPlayers.length > 0) {
-        // Find the most recently added guest that is not 'in' or 'waiting' if possible,
-        // otherwise remove the last one added.
         const lastGuest = guestPlayers[guestPlayers.length - 1];
         setGuestPlayers(current => current.filter(g => g.id !== lastGuest.id));
     }
@@ -65,7 +65,7 @@ export function PlusOneManager({
         </h3>
         <div className="flex items-center gap-4 p-4 rounded-lg bg-muted/50 justify-between">
             <Label htmlFor="plus-one-count" className="font-semibold">
-                Add guests to the match ({guestPlayers.length} / {maxGuests})
+                {guestPlayers.length > 0 ? "Guest Players" : "Add guests to the match"} ({guestPlayers.length} / {maxGuests})
             </Label>
             <div className="flex items-center gap-2">
                 <Button
