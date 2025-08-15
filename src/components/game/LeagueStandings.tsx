@@ -13,13 +13,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash, MoreVertical, Plus, Trophy, Download, Settings } from "lucide-react";
+import { Edit, Trash, MoreVertical, Plus, Trophy, Download, Settings, Upload, FileDown } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
@@ -34,6 +35,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from "../ui/card";
 import { cn } from "@/lib/utils";
+import { Label } from "../ui/label";
 
 interface LeagueStandingsProps {
   players: Player[];
@@ -41,10 +43,21 @@ interface LeagueStandingsProps {
   onDeletePlayer: (playerId: string) => void;
   onAddPlayer: () => void;
   onOpenSettings: () => void;
+  onExportData: () => void;
+  onImportData: (event: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
-export function LeagueStandings({ players, onEditPlayer, onDeletePlayer, onAddPlayer, onOpenSettings }: LeagueStandingsProps) {
+export function LeagueStandings({ 
+    players, 
+    onEditPlayer, 
+    onDeletePlayer, 
+    onAddPlayer, 
+    onOpenSettings,
+    onExportData,
+    onImportData
+}: LeagueStandingsProps) {
   const printRef = useRef<HTMLDivElement>(null);
+  const importInputRef = useRef<HTMLInputElement>(null);
 
   const getRankContent = (rank: number) => {
     return (
@@ -59,7 +72,7 @@ export function LeagueStandings({ players, onEditPlayer, onDeletePlayer, onAddPl
     );
   };
 
-  const handleDownload = () => {
+  const handleDownloadStandings = () => {
     if (printRef.current) {
         html2canvas(printRef.current, {
             scale: 2, // Higher scale for better quality
@@ -74,6 +87,11 @@ export function LeagueStandings({ players, onEditPlayer, onDeletePlayer, onAddPl
     }
   };
 
+  const handleImportClick = () => {
+    importInputRef.current?.click();
+  };
+
+
   return (
     <>
       <Card className="no-print">
@@ -85,13 +103,40 @@ export function LeagueStandings({ players, onEditPlayer, onDeletePlayer, onAddPl
                 </CardTitle>
               </div>
               <div className="flex items-center gap-2">
-                <Button onClick={onOpenSettings} size="icon" variant="outline">
-                    <Settings className="h-4 w-4" />
-                    <span className="sr-only">Open Settings</span>
-                </Button>
                 <Button onClick={onAddPlayer} size="sm">
                     <Plus className="mr-2" /> Add Player
                 </Button>
+                 <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button size="icon" variant="outline">
+                            <Settings className="h-4 w-4" />
+                            <span className="sr-only">Settings & Data</span>
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={onOpenSettings}>
+                            <Settings className="mr-2"/> Penalty Settings
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={handleDownloadStandings}>
+                            <Download className="mr-2"/> Download Standings Image
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={onExportData}>
+                            <FileDown className="mr-2"/> Export All Data
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={handleImportClick}>
+                           <Upload className="mr-2"/> Import Data
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+                 <input
+                    type="file"
+                    ref={importInputRef}
+                    className="hidden"
+                    accept=".json"
+                    onChange={onImportData}
+                />
               </div>
           </CardHeader>
           <CardContent className="p-0 md:p-6">
@@ -183,11 +228,6 @@ export function LeagueStandings({ players, onEditPlayer, onDeletePlayer, onAddPl
                   </Table>
               </div>
           </CardContent>
-          <CardFooter className="flex justify-end p-2 md:p-6">
-                <Button onClick={handleDownload} variant="outline" size="sm">
-                    <Download className="mr-2" /> Download Standings
-                </Button>
-          </CardFooter>
       </Card>
 
       {/* Printable version */}

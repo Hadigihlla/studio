@@ -551,8 +551,8 @@ export function Game() {
         if (!player || player.isGuest) return;
 
         const newForm: ('W' | 'D' | 'L')[] = [];
-        // Iterate matches from oldest to newest to build the form chronologically
-        [...remainingMatches].reverse().forEach(match => {
+        // Iterate matches from newest to oldest to build the form chronologically
+        [...remainingMatches].forEach(match => {
             let result: 'W' | 'D' | 'L' | null = null;
             if (match.teams.teamA.some(p => p.id === player.id)) {
                 result = match.result === 'A' ? 'W' : match.result === 'B' ? 'L' : 'D';
@@ -561,8 +561,8 @@ export function Game() {
             }
             if(result) newForm.push(result);
         });
-        // The form should be the most recent 5, so we take the end of the built array
-        player.form = newForm.slice(-5).reverse();
+        // The form should be the most recent 5
+        player.form = newForm.slice(0, 5);
     });
 
     setPlayers(Array.from(playerMap.values()));
@@ -572,6 +572,63 @@ export function Game() {
   
   const handleDownloadMatchResult = (match: Match) => {
     setMatchToPrint(match);
+  };
+
+  const handleExportData = () => {
+    try {
+      const dataToExport = {
+        players,
+        guestPlayers,
+        matchHistory,
+        settings,
+      };
+      const dataStr = JSON.stringify(dataToExport, null, 2);
+      const dataBlob = new Blob([dataStr], { type: "application/json" });
+      const url = URL.createObjectURL(dataBlob);
+      const link = document.createElement('a');
+      link.download = 'hirafus-league-backup.json';
+      link.href = url;
+      link.click();
+      URL.revokeObjectURL(url);
+      toast({ title: "Data Exported", description: "Your league data has been saved to a backup file." });
+    } catch (error) {
+      console.error("Failed to export data", error);
+      toast({ variant: 'destructive', title: "Export Failed", description: "Could not export your data." });
+    }
+  };
+
+  const handleImportData = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const text = e.target?.result;
+        if (typeof text !== 'string') {
+          throw new Error("File could not be read");
+        }
+        const data = JSON.parse(text);
+
+        // Basic validation
+        if (data.players && data.matchHistory && data.settings) {
+          setPlayers(data.players);
+          setGuestPlayers(data.guestPlayers || []);
+          setMatchHistory(data.matchHistory);
+          setSettings(data.settings);
+          toast({ title: "Data Imported", description: "Your league data has been successfully restored." });
+        } else {
+          throw new Error("Invalid backup file format");
+        }
+      } catch (error) {
+        console.error("Failed to import data", error);
+        toast({ variant: 'destructive', title: "Import Failed", description: "The selected file is not a valid backup." });
+      } finally {
+        // Reset file input so user can select the same file again if needed
+        event.target.value = '';
+      }
+    };
+    reader.readAsText(file);
   };
   
   if (isLoading) {
@@ -717,6 +774,8 @@ export function Game() {
               onDeletePlayer={handleDeletePlayer}
               onAddPlayer={() => handleOpenPlayerDialog(null)}
               onOpenSettings={() => setIsSettingsDialogOpen(true)}
+              onExportData={handleExportData}
+              onImportData={handleImportData}
             />
           </TabsContent>
 
