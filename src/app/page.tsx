@@ -85,8 +85,6 @@ export default function Home() {
     return playersWithPenalties.sort((a, b) => b.points - a.points);
   }, [playersWithPenalties]);
   
-  const rosterInCount = useMemo(() => sortedPlayers.filter(p => p.status === 'in').length, [sortedPlayers]);
-  
   const guestPlayers = useMemo(() => {
     const medianPoints = sortedPlayers.length > 0
         ? sortedPlayers[Math.floor(sortedPlayers.length / 2)].points
@@ -94,45 +92,44 @@ export default function Home() {
 
     const rosterIn = sortedPlayers.filter(p => p.status === 'in');
 
-    return Array.from({ length: plusOneCount }, (_, i) => ({
-        id: `guest${i + 1}`,
-        name: `Guest ${i + 1}`,
-        points: medianPoints,
-        status: (rosterIn.length + i) < MAX_PLAYERS_IN ? 'in' : 'waiting' as PlayerStatus,
-        matchesPlayed: 0,
-        wins: 0,
-        draws: 0,
-        losses: 0,
-        form: [],
-        photoURL: `https://placehold.co/40x40.png?text=G${i+1}`,
-        isGuest: true,
-        waitingTimestamp: (rosterIn.length + i) >= MAX_PLAYERS_IN ? Date.now() + i : null,
-    }));
+    return Array.from({ length: plusOneCount }, (_, i) => {
+        const isIn = (rosterIn.length + i) < MAX_PLAYERS_IN;
+        return {
+            id: `guest${i + 1}`,
+            name: `Guest ${i + 1}`,
+            points: medianPoints,
+            status: isIn ? 'in' : 'waiting' as PlayerStatus,
+            matchesPlayed: 0,
+            wins: 0,
+            draws: 0,
+            losses: 0,
+            form: [],
+            photoURL: `https://placehold.co/40x40.png?text=G${i+1}`,
+            isGuest: true,
+            waitingTimestamp: !isIn ? Date.now() + i : null,
+        }
+    });
   }, [plusOneCount, sortedPlayers]);
-  
+
   const playersIn = useMemo(() => {
     const rosterIn = sortedPlayers.filter(p => p.status === 'in');
     const guestsIn = guestPlayers.filter(p => p.status === 'in');
     return [...rosterIn, ...guestsIn];
   }, [sortedPlayers, guestPlayers]);
 
-  const guestsInCount = useMemo(() => guestPlayers.filter(p => p.status === 'in').length, [guestPlayers]);
-
   const playersWaiting = useMemo(() => {
-     const rosterWaiting = sortedPlayers
-        .filter(p => p.status === 'waiting')
-        .sort((a, b) => (a.waitingTimestamp || 0) - (b.waitingTimestamp || 0));
-    
-    const guestsWaiting = guestPlayers.filter(g => g.status === 'waiting');
-
-    return [...rosterWaiting, ...guestsWaiting].sort((a, b) => (a.waitingTimestamp || 0) - (b.waitingTimestamp || 0));
+     const rosterWaiting = sortedPlayers.filter(p => p.status === 'waiting');
+     const guestsWaiting = guestPlayers.filter(g => g.status === 'waiting');
+     return [...rosterWaiting, ...guestsWaiting].sort((a, b) => (a.waitingTimestamp || 0) - (b.waitingTimestamp || 0));
   }, [sortedPlayers, guestPlayers]);
-  
-  const rosterWaitingCount = useMemo(() => sortedPlayers.filter(p => p.status === 'waiting').length, [sortedPlayers]);
-  const guestsWaitingCount = useMemo(() => guestPlayers.filter(p => p.status === 'waiting').length, [guestPlayers]);
 
   const otherPlayers = useMemo(() => sortedPlayers.filter(p => p.status === 'undecided' || p.status === 'out'), [sortedPlayers]);
   
+  const rosterInCount = useMemo(() => sortedPlayers.filter(p => p.status === 'in').length, [sortedPlayers]);
+  const guestsInCount = useMemo(() => guestPlayers.filter(p => p.status === 'in').length, [guestPlayers]);
+  const rosterWaitingCount = useMemo(() => sortedPlayers.filter(p => p.status === 'waiting').length, [sortedPlayers]);
+  const guestsWaitingCount = useMemo(() => guestPlayers.filter(p => p.status === 'waiting').length, [guestPlayers]);
+
   const unassignedPlayers = useMemo(() => {
     if (gamePhase !== 'manual-draft') return [];
     const assignedIds = new Set([...manualTeams.teamA.map(p => p.id), ...manualTeams.teamB.map(p => p.id)]);
@@ -241,13 +238,14 @@ export default function Home() {
         const playerToUpdate = currentPlayers.find(p => p.id === playerId);
         if (!playerToUpdate) return currentPlayers;
 
-        const allCurrentPlayers = [...currentPlayers, ...guestPlayers];
-        const currentInCount = allCurrentPlayers.filter(p => p.status === 'in').length;
+        const currentRosterIn = currentPlayers.filter(p => p.status === 'in');
+        const currentGuestsIn = guestPlayers.filter(p => p.status === 'in');
+        const currentInCount = currentRosterIn.length + currentGuestsIn.length;
         
         let updatedPlayers = [...currentPlayers];
 
+        // Player wants to be IN
         if (newStatus === 'in') {
-            // Player wants to be IN
             if (currentInCount < MAX_PLAYERS_IN) {
                 updatedPlayers = updatedPlayers.map(p => 
                     p.id === playerId ? { ...p, status: 'in', waitingTimestamp: null } : p
@@ -257,8 +255,7 @@ export default function Home() {
                     p.id === playerId ? { ...p, status: 'waiting', waitingTimestamp: p.waitingTimestamp || Date.now() } : p
                 );
             }
-        } else { 
-            // Player is setting status to 'out' or 'undecided'
+        } else { // Player is setting status to 'out' or 'undecided'
             const wasPlayerIn = playerToUpdate.status === 'in';
             updatedPlayers = updatedPlayers.map(p => 
                 p.id === playerId ? { ...p, status: newStatus, waitingTimestamp: null } : p
@@ -266,26 +263,35 @@ export default function Home() {
 
             // If a player who was 'in' drops out, promote someone from the waiting list
             if (wasPlayerIn) {
-                const combinedPlayersForWaiting = [...updatedPlayers, ...guestPlayers];
-                const waitingList = combinedPlayersForWaiting
+                const updatedGuestPlayers = guestPlayers.map(g => {
+                    const player = updatedPlayers.find(p => p.id === g.id);
+                    return player ? {...g, ...player} : g;
+                });
+
+                const allCurrentPlayers = [...updatedPlayers.filter(p => !p.isGuest), ...updatedGuestPlayers];
+                
+                const waitingList = allCurrentPlayers
                     .filter(p => p.status === 'waiting')
                     .sort((a, b) => (a.waitingTimestamp || 0) - (b.waitingTimestamp || 0));
 
                 if (waitingList.length > 0) {
                     const playerToPromote = waitingList[0];
                     if (!playerToPromote.isGuest) {
-                        updatedPlayers = updatedPlayers.map(p => 
+                         updatedPlayers = updatedPlayers.map(p => 
                             p.id === playerToPromote.id ? { ...p, status: 'in', waitingTimestamp: null } : p
                         );
                     }
-                    // Guest promotion is handled by guestPlayers re-computation
+                    // Guest promotion is handled automatically by guestPlayers re-computation,
+                    // but we need to ensure localStorage `plusOneCount` is correct if a guest is promoted.
+                    // This is complex. A better approach is to manage guest state more directly.
+                    // The simplest fix is to just let the guestPlayer computation handle guests.
                 }
             }
         }
-
         return updatedPlayers;
     });
 };
+
 
   const handleOpenPlayerDialog = (player: Player | null) => {
     setEditingPlayer(player);
@@ -830,7 +836,3 @@ export default function Home() {
     </>
   );
 }
-
-    
-
-    
