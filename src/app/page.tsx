@@ -4,7 +4,7 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import html2canvas from "html2canvas";
 import { format } from "date-fns";
-import type { Player, PlayerStatus, Team, Match, Result, Penalty, Settings, MatchPlayer } from "@/types";
+import type { Player, PlayerStatus, Team, Match, Result, Penalty, Settings, GuestPlayer } from "@/types";
 import { Header } from "@/components/game/Header";
 import { UpcomingGame } from "@/components/game/UpcomingGame";
 import { PlayerLeaderboard } from "@/components/game/PlayerLeaderboard";
@@ -35,6 +35,7 @@ const defaultSettings: Settings = {
 
 export default function Home() {
   const [players, setPlayers] = useState<Player[]>([]);
+  const [guestPlayers, setGuestPlayers] = useState<GuestPlayer[]>([]);
   const [teams, setTeams] = useState<Team | null>(null);
   const [manualTeams, setManualTeams] = useState<Team>({ teamA: [], teamB: [] });
   const [gamePhase, setGamePhase] = useState<"availability" | "teams" | "results" | "manual-draft">("availability");
@@ -48,7 +49,6 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const [matchToPrint, setMatchToPrint] = useState<Match | null>(null);
   const [settings, setSettings] = useState<Settings>(defaultSettings);
-  const [plusOneCount, setPlusOneCount] = useState(0);
   const printResultRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -85,42 +85,15 @@ export default function Home() {
     return playersWithPenalties.sort((a, b) => b.points - a.points);
   }, [playersWithPenalties]);
   
-  const guestPlayers = useMemo(() => {
-    const medianPoints = sortedPlayers.length > 0
-        ? sortedPlayers[Math.floor(sortedPlayers.length / 2)].points
-        : 50;
-
-    const rosterIn = sortedPlayers.filter(p => p.status === 'in');
-
-    return Array.from({ length: plusOneCount }, (_, i) => {
-        const isIn = (rosterIn.length + i) < MAX_PLAYERS_IN;
-        return {
-            id: `guest${i + 1}`,
-            name: `Guest ${i + 1}`,
-            points: medianPoints,
-            status: isIn ? 'in' : 'waiting' as PlayerStatus,
-            matchesPlayed: 0,
-            wins: 0,
-            draws: 0,
-            losses: 0,
-            form: [],
-            photoURL: `https://placehold.co/40x40.png?text=G${i+1}`,
-            isGuest: true,
-            waitingTimestamp: !isIn ? Date.now() + i : null,
-        }
-    });
-  }, [plusOneCount, sortedPlayers]);
-
   const playersIn = useMemo(() => {
-    const rosterIn = sortedPlayers.filter(p => p.status === 'in');
-    const guestsIn = guestPlayers.filter(p => p.status === 'in');
-    return [...rosterIn, ...guestsIn];
+    const allPlayers = [...sortedPlayers, ...guestPlayers];
+    return allPlayers.filter(p => p.status === 'in');
   }, [sortedPlayers, guestPlayers]);
 
   const playersWaiting = useMemo(() => {
-     const rosterWaiting = sortedPlayers.filter(p => p.status === 'waiting');
-     const guestsWaiting = guestPlayers.filter(g => g.status === 'waiting');
-     return [...rosterWaiting, ...guestsWaiting].sort((a, b) => (a.waitingTimestamp || 0) - (b.waitingTimestamp || 0));
+     const allPlayers = [...sortedPlayers, ...guestPlayers];
+     return allPlayers.filter(p => p.status === 'waiting')
+        .sort((a, b) => (a.waitingTimestamp || 0) - (b.waitingTimestamp || 0));
   }, [sortedPlayers, guestPlayers]);
 
   const otherPlayers = useMemo(() => sortedPlayers.filter(p => p.status === 'undecided' || p.status === 'out'), [sortedPlayers]);
@@ -154,9 +127,9 @@ export default function Home() {
   useEffect(() => {
     try {
       const savedPlayers = localStorage.getItem("players");
+      const savedGuests = localStorage.getItem("guestPlayers");
       const savedMatches = localStorage.getItem("matchHistory");
       const savedSettings = localStorage.getItem("settings");
-      const savedPlusOnes = localStorage.getItem("plusOneCount");
 
       if (savedPlayers) {
         setPlayers(JSON.parse(savedPlayers));
@@ -165,16 +138,16 @@ export default function Home() {
         setPlayers(playersWithIds);
       }
       
+      if(savedGuests) {
+        setGuestPlayers(JSON.parse(savedGuests));
+      }
+
       if (savedMatches) {
         setMatchHistory(JSON.parse(savedMatches));
       }
 
       if (savedSettings) {
         setSettings(JSON.parse(savedSettings));
-      }
-      
-      if (savedPlusOnes) {
-        setPlusOneCount(JSON.parse(savedPlusOnes));
       }
 
     } catch (error) {
@@ -194,9 +167,9 @@ export default function Home() {
     if (!isLoading) {
         try {
             localStorage.setItem("players", JSON.stringify(players));
+            localStorage.setItem("guestPlayers", JSON.stringify(guestPlayers));
             localStorage.setItem("matchHistory", JSON.stringify(matchHistory));
             localStorage.setItem("settings", JSON.stringify(settings));
-            localStorage.setItem("plusOneCount", JSON.stringify(plusOneCount));
         } catch (error) {
             console.error("Failed to save data to localStorage", error);
             showToast({
@@ -206,7 +179,7 @@ export default function Home() {
             });
         }
     }
-  }, [players, matchHistory, settings, plusOneCount, isLoading, showToast]);
+  }, [players, guestPlayers, matchHistory, settings, isLoading, showToast]);
   
   useEffect(() => {
     if (matchToPrint && printResultRef.current) {
@@ -225,72 +198,47 @@ export default function Home() {
   }, [matchToPrint]);
   
   const handleSetAvailability = (playerId: string, newStatus: PlayerStatus) => {
-    if (gamePhase !== 'availability') {
-        showToast({
-            variant: "destructive",
-            title: "Action Locked",
-            description: "Cannot change availability after teams are drafted.",
-        });
-        return;
-    }
+    if (gamePhase !== 'availability') return;
 
-    setPlayers(currentPlayers => {
-        const playerToUpdate = currentPlayers.find(p => p.id === playerId);
-        if (!playerToUpdate) return currentPlayers;
+    const allPlayersAndGuests = [...players, ...guestPlayers];
+    const currentlyIn = allPlayersAndGuests.filter(p => p.status === 'in');
 
-        const currentRosterIn = currentPlayers.filter(p => p.status === 'in');
-        const currentGuestsIn = guestPlayers.filter(p => p.status === 'in');
-        const currentInCount = currentRosterIn.length + currentGuestsIn.length;
-        
-        let updatedPlayers = [...currentPlayers];
+    const updatePlayerOrGuestState = (id: string, updates: Partial<Player>) => {
+      if(id.startsWith('guest')) {
+          setGuestPlayers(current => current.map(p => p.id === id ? {...p, ...updates} : p));
+      } else {
+          setPlayers(current => current.map(p => p.id === id ? {...p, ...updates} : p));
+      }
+    };
 
-        // Player wants to be IN
-        if (newStatus === 'in') {
-            if (currentInCount < MAX_PLAYERS_IN) {
-                updatedPlayers = updatedPlayers.map(p => 
-                    p.id === playerId ? { ...p, status: 'in', waitingTimestamp: null } : p
-                );
-            } else {
-                updatedPlayers = updatedPlayers.map(p => 
-                    p.id === playerId ? { ...p, status: 'waiting', waitingTimestamp: p.waitingTimestamp || Date.now() } : p
-                );
-            }
-        } else { // Player is setting status to 'out' or 'undecided'
-            const wasPlayerIn = playerToUpdate.status === 'in';
-            updatedPlayers = updatedPlayers.map(p => 
-                p.id === playerId ? { ...p, status: newStatus, waitingTimestamp: null } : p
-            );
+    const playerToUpdate = allPlayersAndGuests.find(p => p.id === playerId);
+    if (!playerToUpdate) return;
+    
+    // Player wants to be IN
+    if (newStatus === 'in') {
+        if (currentlyIn.length < MAX_PLAYERS_IN) {
+            updatePlayerOrGuestState(playerId, { status: 'in', waitingTimestamp: null });
+        } else {
+            updatePlayerOrGuestState(playerId, { status: 'waiting', waitingTimestamp: playerToUpdate.waitingTimestamp || Date.now() });
+        }
+    } else { // Player is setting status to 'out' or 'undecided'
+        const wasPlayerIn = playerToUpdate.status === 'in';
+        updatePlayerOrGuestState(playerId, { status: newStatus, waitingTimestamp: null });
 
-            // If a player who was 'in' drops out, promote someone from the waiting list
-            if (wasPlayerIn) {
-                const updatedGuestPlayers = guestPlayers.map(g => {
-                    const player = updatedPlayers.find(p => p.id === g.id);
-                    return player ? {...g, ...player} : g;
-                });
+        // If a player who was 'in' drops out, promote someone from the waiting list
+        if (wasPlayerIn) {
+            const allCurrentPlayers = [...players, ...guestPlayers];
+            const waitingList = allCurrentPlayers
+                .filter(p => p.status === 'waiting' && p.id !== playerId)
+                .sort((a, b) => (a.waitingTimestamp || 0) - (b.waitingTimestamp || 0));
 
-                const allCurrentPlayers = [...updatedPlayers.filter(p => !p.isGuest), ...updatedGuestPlayers];
-                
-                const waitingList = allCurrentPlayers
-                    .filter(p => p.status === 'waiting')
-                    .sort((a, b) => (a.waitingTimestamp || 0) - (b.waitingTimestamp || 0));
-
-                if (waitingList.length > 0) {
-                    const playerToPromote = waitingList[0];
-                    if (!playerToPromote.isGuest) {
-                         updatedPlayers = updatedPlayers.map(p => 
-                            p.id === playerToPromote.id ? { ...p, status: 'in', waitingTimestamp: null } : p
-                        );
-                    }
-                    // Guest promotion is handled automatically by guestPlayers re-computation,
-                    // but we need to ensure localStorage `plusOneCount` is correct if a guest is promoted.
-                    // This is complex. A better approach is to manage guest state more directly.
-                    // The simplest fix is to just let the guestPlayer computation handle guests.
-                }
+            if (waitingList.length > 0) {
+                const playerToPromote = waitingList[0];
+                updatePlayerOrGuestState(playerToPromote.id, { status: 'in', waitingTimestamp: null });
             }
         }
-        return updatedPlayers;
-    });
-};
+    }
+  };
 
 
   const handleOpenPlayerDialog = (player: Player | null) => {
@@ -500,7 +448,7 @@ export default function Home() {
     setWinner(null);
     setPenalties({});
     setScores({ teamA: 0, teamB: 0 });
-    setPlusOneCount(0);
+    setGuestPlayers([]);
     setPlayers(prev => prev.map(p => ({...p, status: 'undecided', waitingTimestamp: null})));
     toast({ title: "New Game Started", description: "Player availability has been reset. Good luck!" });
   };
@@ -678,13 +626,18 @@ export default function Home() {
                             <PlayerLeaderboard players={otherPlayers} onSetAvailability={handleSetAvailability} gamePhase={gamePhase} />
                         </div>
                         <Separator className="my-4"/>
-                        <PlusOneManager 
-                          count={plusOneCount}
-                          setCount={setPlusOneCount}
+                        <PlusOneManager
+                          guestPlayers={guestPlayers}
+                          setGuestPlayers={setGuestPlayers}
                           maxGuests={MAX_GUESTS}
-                          rosterInCount={rosterInCount}
+                          playersInCount={playersIn.length}
                           maxPlayersIn={MAX_PLAYERS_IN}
                           showToast={showToast}
+                          medianPoints={
+                            sortedPlayers.length > 0 
+                            ? sortedPlayers[Math.floor(sortedPlayers.length / 2)].points 
+                            : 50
+                          }
                         />
                     </CardContent>
                   </Card>

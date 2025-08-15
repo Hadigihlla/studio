@@ -22,6 +22,10 @@ export interface Player {
   isGuest?: boolean;
 }
 
+export interface GuestPlayer extends Player {
+    isGuest: true;
+}
+
 export interface Team {
   teamA: Player[];
   teamB: Player[];

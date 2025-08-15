@@ -12,7 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 
 interface PlayerLeaderboardProps {
-  players: Player[];
+  players: (Player)[];
   onSetAvailability?: (playerId: string, status: PlayerStatus) => void;
   gamePhase?: "availability" | "teams" | "results" | "manual-draft";
   onAssignPlayer?: (playerId: string, team: 'teamA' | 'teamB' | null) => void;
@@ -49,6 +49,9 @@ const ManualDraftControls = ({ player, onAssignPlayer }: { player: Player, onAss
 
 const StatusBadge = ({ player }: { player: Player }) => {
     if (player.isGuest) {
+      if (player.status === 'waiting') {
+        return <Badge variant="outline" className="text-amber-500 border-amber-500"><Clock className="w-3 h-3 mr-1"/>WAITING</Badge>;
+      }
       return <Badge variant="secondary">GUEST</Badge>;
     }
     switch (player.status) {
@@ -99,9 +102,9 @@ export function PlayerLeaderboard({ players, onSetAvailability, gamePhase, onAss
                   {player.isGuest ? '-' : player.points}
                 </TableCell>
                 <TableCell className="text-center p-2 md:p-4">
-                    {showAvailabilityControls && !player.isGuest && <AvailabilityControls player={player} onSetAvailability={onSetAvailability} />}
+                    {showAvailabilityControls && <AvailabilityControls player={player} onSetAvailability={onSetAvailability} />}
                     {showManualDraftControls && <ManualDraftControls player={player} onAssignPlayer={onAssignPlayer} />}
-                    {(!showAvailabilityControls || player.isGuest) && !showManualDraftControls && <StatusBadge player={player} />}
+                    {!showAvailabilityControls && !showManualDraftControls && <StatusBadge player={player} />}
                 </TableCell>
               </TableRow>
             ))}

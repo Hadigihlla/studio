@@ -5,42 +5,59 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Minus, Plus, UserPlus } from "lucide-react";
 import type { Toast } from "@/hooks/use-toast";
+import type { GuestPlayer, PlayerStatus } from "@/types";
 
 interface PlusOneManagerProps {
-  count: number;
-  setCount: (count: number) => void;
+  guestPlayers: GuestPlayer[];
+  setGuestPlayers: (guests: GuestPlayer[] | ((guests: GuestPlayer[]) => GuestPlayer[])) => void;
   maxGuests: number;
-  rosterInCount: number;
+  playersInCount: number;
   maxPlayersIn: number;
+  medianPoints: number;
   showToast: (props: Parameters<typeof Toast>[0]) => void;
 }
 
 export function PlusOneManager({ 
-  count, 
-  setCount, 
+  guestPlayers,
+  setGuestPlayers,
   maxGuests,
-  rosterInCount,
+  playersInCount,
   maxPlayersIn,
+  medianPoints,
   showToast
 }: PlusOneManagerProps) {
   
   const handleIncrement = () => {
-    if (count < maxGuests) {
-      const newCount = count + 1;
-      const totalPlayersIfAdded = rosterInCount + newCount;
-      if (totalPlayersIfAdded > maxPlayersIn) {
+    if (guestPlayers.length < maxGuests) {
+      if (playersInCount >= maxPlayersIn) {
         showToast({
           title: "Heads Up: Waiting List",
           description: `Adding this guest will place them on the waiting list as the game is full.`
         });
       }
-      setCount(newCount);
+      
+      const newGuest: GuestPlayer = {
+        id: `guest${Date.now()}`,
+        name: `Guest ${guestPlayers.length + 1}`,
+        points: medianPoints,
+        status: playersInCount >= maxPlayersIn ? 'waiting' : 'in',
+        matchesPlayed: 0,
+        wins: 0,
+        draws: 0,
+        losses: 0,
+        form: [],
+        photoURL: `https://placehold.co/40x40.png?text=G${guestPlayers.length + 1}`,
+        isGuest: true,
+        waitingTimestamp: playersInCount >= maxPlayersIn ? Date.now() : null,
+      };
+
+      setGuestPlayers(current => [...current, newGuest]);
     }
   };
 
   const handleDecrement = () => {
-    if (count > 0) {
-      setCount(count - 1);
+    if (guestPlayers.length > 0) {
+      setGuestPlayers(current => current.slice(0, -1));
     }
   };
 
@@ -51,26 +68,26 @@ export function PlusOneManager({
         </h3>
         <div className="flex items-center gap-4 p-4 rounded-lg bg-muted/50 justify-between">
             <Label htmlFor="plus-one-count" className="font-semibold">
-                Add guests to the match ({count} / {maxGuests})
+                Add guests to the match ({guestPlayers.length} / {maxGuests})
             </Label>
             <div className="flex items-center gap-2">
                 <Button
                     size="icon"
                     variant="outline"
                     onClick={handleDecrement}
-                    disabled={count <= 0}
+                    disabled={guestPlayers.length <= 0}
                     aria-label="Remove guest player"
                 >
                     <Minus className="h-4 w-4" />
                 </Button>
                 <span className="text-xl font-bold w-10 text-center" id="plus-one-count">
-                    {count}
+                    {guestPlayers.length}
                 </span>
                 <Button
                     size="icon"
                     variant="outline"
                     onClick={handleIncrement}
-                    disabled={count >= maxGuests}
+                    disabled={guestPlayers.length >= maxGuests}
                     aria-label="Add guest player"
                 >
                     <Plus className="h-4 w-4" />
