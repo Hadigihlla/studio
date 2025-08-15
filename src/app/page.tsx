@@ -55,7 +55,21 @@ export default function Home() {
   const showToast = useCallback((props: Parameters<typeof toast>[0]) => {
     toast(props);
   }, [toast]);
-  
+
+  const penaltiesInPrintableMatch = useMemo(() => {
+    if (!matchToPrint) return [];
+    return Object.entries(matchToPrint.penalties || {})
+      .map(([playerId, penalty]) => {
+        if (!penalty) return null;
+        const teamAPlayer = matchToPrint.teams.teamA.find(p => p.id === playerId);
+        const teamBPlayer = matchToPrint.teams.teamB.find(p => p.id === playerId);
+        const player = teamAPlayer || teamBPlayer;
+        if (!player || player.isGuest) return null; // Don't show penalties for guests
+        return { name: player.name, type: penalty, photoURL: player.photoURL };
+      })
+      .filter((p): p is { name: string; type: NonNullable<Penalty>; photoURL?: string } => p !== null);
+  }, [matchToPrint]);
+
   const playersWithPenalties = useMemo(() => {
     const penaltyData = players.map(player => {
         let latePenalties = 0;
@@ -136,20 +150,6 @@ export default function Home() {
     const assignedIds = new Set([...manualTeams.teamA.map(p => p.id), ...manualTeams.teamB.map(p => p.id)]);
     return playersIn.filter(p => !assignedIds.has(p.id));
   }, [playersIn, manualTeams, gamePhase]);
-
-  const penaltiesInPrintableMatch = useMemo(() => {
-    if (!matchToPrint) return [];
-    return Object.entries(matchToPrint.penalties || {})
-      .map(([playerId, penalty]) => {
-        if (!penalty) return null;
-        const teamAPlayer = matchToPrint.teams.teamA.find(p => p.id === playerId);
-        const teamBPlayer = matchToPrint.teams.teamB.find(p => p.id === playerId);
-        const player = teamAPlayer || teamBPlayer;
-        if (!player || player.isGuest) return null; // Don't show penalties for guests
-        return { name: player.name, type: penalty, photoURL: player.photoURL };
-      })
-      .filter((p): p is { name: string; type: NonNullable<Penalty>; photoURL?: string } => p !== null);
-  }, [matchToPrint]);
 
     // Load state from localStorage on initial mount
   useEffect(() => {
@@ -272,9 +272,6 @@ export default function Home() {
                     updatedPlayers = updatedPlayers.map(p => 
                         p.id === playerToPromote.id ? { ...p, status: 'in', waitingTimestamp: null } : p
                     );
-                    if (playerToUpdate.status !== newStatus) {
-                        showToast({ title: "Player Promoted!", description: `${playerToPromote.name} moved from waiting list to 'in'.` });
-                    }
                 }
             }
         }
@@ -826,3 +823,5 @@ export default function Home() {
     </>
   );
 }
+
+    
