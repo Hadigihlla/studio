@@ -92,11 +92,13 @@ export default function Home() {
         ? sortedPlayers[Math.floor(sortedPlayers.length / 2)].points
         : 50;
 
+    const rosterIn = sortedPlayers.filter(p => p.status === 'in');
+
     return Array.from({ length: plusOneCount }, (_, i) => ({
         id: `guest${i + 1}`,
         name: `Guest ${i + 1}`,
         points: medianPoints,
-        status: (rosterInCount + i) < MAX_PLAYERS_IN ? 'in' : 'waiting' as PlayerStatus,
+        status: (rosterIn.length + i) < MAX_PLAYERS_IN ? 'in' : 'waiting' as PlayerStatus,
         matchesPlayed: 0,
         wins: 0,
         draws: 0,
@@ -104,9 +106,9 @@ export default function Home() {
         form: [],
         photoURL: `https://placehold.co/40x40.png?text=G${i+1}`,
         isGuest: true,
-        waitingTimestamp: (rosterInCount + i) < MAX_PLAYERS_IN ? null : Date.now() + i,
+        waitingTimestamp: (rosterIn.length + i) >= MAX_PLAYERS_IN ? Date.now() + i : null,
     }));
-  }, [plusOneCount, sortedPlayers, rosterInCount]);
+  }, [plusOneCount, sortedPlayers]);
   
   const playersIn = useMemo(() => {
     const rosterIn = sortedPlayers.filter(p => p.status === 'in');
@@ -828,5 +830,7 @@ export default function Home() {
     </>
   );
 }
+
+    
 
     
