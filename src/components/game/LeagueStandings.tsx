@@ -237,7 +237,7 @@ export function LeagueStandings({
                 <CardTitle className="printable-title text-3xl font-headline">Hirafus League</CardTitle>
                 <CardDescription className="printable-subtitle text-lg">League Standings</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-6">
                  <Table>
                     <TableHeader>
                         <TableRow>
@@ -293,3 +293,6 @@ export function LeagueStandings({
     </>
   );
 }
+
+
+    
