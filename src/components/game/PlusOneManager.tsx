@@ -29,13 +29,6 @@ export function PlusOneManager({
   
   const handleIncrement = () => {
     if (guestPlayers.length < maxGuests) {
-      if (playersInCount >= maxPlayersIn) {
-        showToast({
-          title: "Heads Up: Waiting List",
-          description: `Adding this guest will place them on the waiting list as the game is full.`
-        });
-      }
-      
       const newGuest: GuestPlayer = {
         id: `guest${Date.now()}`,
         name: `Guest ${guestPlayers.length + 1}`,
