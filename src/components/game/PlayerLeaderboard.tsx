@@ -8,6 +8,8 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Clock, X } from "lucide-react";
 import { Badge } from "../ui/badge";
 import { cn } from "@/lib/utils";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 interface PlayerLeaderboardProps {
   players: Player[];
@@ -16,32 +18,26 @@ interface PlayerLeaderboardProps {
   onAssignPlayer?: (playerId: string, team: 'teamA' | 'teamB' | null) => void;
 }
 
-const AvailabilityControls = ({ player, onSetAvailability }: { player: Player, onSetAvailability: (id: string, status: PlayerStatus) => void }) => (
-    <div className="flex justify-center items-center bg-muted p-1 rounded-full">
-        <Button
-            size="sm"
-            variant={player.status === 'in' || player.status === 'waiting' ? 'default' : 'ghost'}
-            className={cn(
-                "rounded-full h-8 w-16 font-semibold", 
-                (player.status === 'in' || player.status === 'waiting') && 'bg-green-500 hover:bg-green-600 text-white shadow-sm'
-            )}
-            onClick={() => onSetAvailability(player.id, "in")}
-        >
-            IN
-        </Button>
-        <Button
-            size="sm"
-            variant={player.status === 'out' ? 'default' : 'ghost'}
-            className={cn(
-                "rounded-full h-8 w-16 font-semibold", 
-                player.status === 'out' && 'bg-red-500 hover:bg-red-600 text-white shadow-sm'
-            )}
-            onClick={() => onSetAvailability(player.id, "out")}
-        >
-            OUT
-        </Button>
-    </div>
-);
+const AvailabilityControls = ({ player, onSetAvailability }: { player: Player, onSetAvailability: (id: string, status: PlayerStatus) => void }) => {
+    const isPlayerIn = player.status === 'in' || player.status === 'waiting';
+    
+    const handleSwitchChange = (checked: boolean) => {
+        onSetAvailability(player.id, checked ? 'in' : 'out');
+    };
+
+    return (
+        <div className="flex items-center justify-center space-x-2">
+             <Label htmlFor={`availability-${player.id}`} className={cn("font-semibold", !isPlayerIn && "text-muted-foreground/80")}>OUT</Label>
+             <Switch
+                id={`availability-${player.id}`}
+                checked={isPlayerIn}
+                onCheckedChange={handleSwitchChange}
+                className="data-[state=checked]:bg-green-500"
+             />
+             <Label htmlFor={`availability-${player.id}`} className={cn("font-semibold", isPlayerIn && "text-primary")}>IN</Label>
+        </div>
+    );
+};
 
 const ManualDraftControls = ({ player, onAssignPlayer }: { player: Player, onAssignPlayer: (id: string, team: 'teamA' | 'teamB' | null) => void }) => (
     <div className="flex justify-center items-center gap-2">
