@@ -56,64 +56,6 @@ export default function Home() {
     toast(props);
   }, [toast]);
   
-    // Load state from localStorage on initial mount
-  useEffect(() => {
-    try {
-      const savedPlayers = localStorage.getItem("players");
-      const savedMatches = localStorage.getItem("matchHistory");
-      const savedSettings = localStorage.getItem("settings");
-      const savedPlusOnes = localStorage.getItem("plusOneCount");
-
-      if (savedPlayers) {
-        setPlayers(JSON.parse(savedPlayers));
-      } else {
-        const playersWithIds = initialPlayers.map((p, index) => ({...p, id: `p${index + 1}`}));
-        setPlayers(playersWithIds);
-      }
-      
-      if (savedMatches) {
-        setMatchHistory(JSON.parse(savedMatches));
-      }
-
-      if (savedSettings) {
-        setSettings(JSON.parse(savedSettings));
-      }
-      
-      if (savedPlusOnes) {
-        setPlusOneCount(JSON.parse(savedPlusOnes));
-      }
-
-    } catch (error) {
-        console.error("Failed to load data from localStorage", error);
-        showToast({
-            variant: 'destructive',
-            title: 'Error Loading Data',
-            description: 'Could not fetch data. Your saved data might be corrupted.'
-        });
-    } finally {
-        setIsLoading(false);
-    }
-  }, [showToast]);
-
-  // Save state to localStorage whenever it changes
-  useEffect(() => {
-    if (!isLoading) {
-        try {
-            localStorage.setItem("players", JSON.stringify(players));
-            localStorage.setItem("matchHistory", JSON.stringify(matchHistory));
-            localStorage.setItem("settings", JSON.stringify(settings));
-            localStorage.setItem("plusOneCount", JSON.stringify(plusOneCount));
-        } catch (error) {
-            console.error("Failed to save data to localStorage", error);
-            showToast({
-                variant: 'destructive',
-                title: 'Error Saving Data',
-                description: 'Could not save your changes.'
-            });
-        }
-    }
-  }, [players, matchHistory, settings, plusOneCount, isLoading, showToast]);
-  
   const playersWithPenalties = useMemo(() => {
     const penaltyData = players.map(player => {
         let latePenalties = 0;
@@ -209,6 +151,64 @@ export default function Home() {
       .filter((p): p is { name: string; type: NonNullable<Penalty>; photoURL?: string } => p !== null);
   }, [matchToPrint]);
 
+    // Load state from localStorage on initial mount
+  useEffect(() => {
+    try {
+      const savedPlayers = localStorage.getItem("players");
+      const savedMatches = localStorage.getItem("matchHistory");
+      const savedSettings = localStorage.getItem("settings");
+      const savedPlusOnes = localStorage.getItem("plusOneCount");
+
+      if (savedPlayers) {
+        setPlayers(JSON.parse(savedPlayers));
+      } else {
+        const playersWithIds = initialPlayers.map((p, index) => ({...p, id: `p${index + 1}`}));
+        setPlayers(playersWithIds);
+      }
+      
+      if (savedMatches) {
+        setMatchHistory(JSON.parse(savedMatches));
+      }
+
+      if (savedSettings) {
+        setSettings(JSON.parse(savedSettings));
+      }
+      
+      if (savedPlusOnes) {
+        setPlusOneCount(JSON.parse(savedPlusOnes));
+      }
+
+    } catch (error) {
+        console.error("Failed to load data from localStorage", error);
+        showToast({
+            variant: 'destructive',
+            title: 'Error Loading Data',
+            description: 'Could not fetch data. Your saved data might be corrupted.'
+        });
+    } finally {
+        setIsLoading(false);
+    }
+  }, [showToast]);
+
+  // Save state to localStorage whenever it changes
+  useEffect(() => {
+    if (!isLoading) {
+        try {
+            localStorage.setItem("players", JSON.stringify(players));
+            localStorage.setItem("matchHistory", JSON.stringify(matchHistory));
+            localStorage.setItem("settings", JSON.stringify(settings));
+            localStorage.setItem("plusOneCount", JSON.stringify(plusOneCount));
+        } catch (error) {
+            console.error("Failed to save data to localStorage", error);
+            showToast({
+                variant: 'destructive',
+                title: 'Error Saving Data',
+                description: 'Could not save your changes.'
+            });
+        }
+    }
+  }, [players, matchHistory, settings, plusOneCount, isLoading, showToast]);
+  
   useEffect(() => {
     if (matchToPrint && printResultRef.current) {
         html2canvas(printResultRef.current, {
@@ -250,22 +250,16 @@ export default function Home() {
                 updatedPlayers = updatedPlayers.map(p => 
                     p.id === playerId ? { ...p, status: 'in', waitingTimestamp: null } : p
                 );
-                showToast({ title: "You're In!", description: `${playerToUpdate.name} is confirmed for the match.` });
             } else {
                 updatedPlayers = updatedPlayers.map(p => 
                     p.id === playerId ? { ...p, status: 'waiting', waitingTimestamp: p.waitingTimestamp || Date.now() } : p
                 );
-                showToast({ title: "Waiting List", description: `${playerToUpdate.name} added to waiting list as the game is full.` });
             }
         } else { // Player is setting status to 'out' or 'undecided'
             const wasPlayerIn = playerToUpdate.status === 'in';
             updatedPlayers = updatedPlayers.map(p => 
                 p.id === playerId ? { ...p, status: newStatus, waitingTimestamp: null } : p
             );
-
-            if (playerToUpdate.status !== newStatus) {
-                showToast({ title: `Status Updated`, description: `${playerToUpdate.name} is now ${newStatus}.` });
-            }
 
             // If a player who was 'in' drops out, promote someone from the waiting list
             if (wasPlayerIn) {
@@ -278,7 +272,9 @@ export default function Home() {
                     updatedPlayers = updatedPlayers.map(p => 
                         p.id === playerToPromote.id ? { ...p, status: 'in', waitingTimestamp: null } : p
                     );
-                    showToast({ title: "Player Promoted!", description: `${playerToPromote.name} moved from waiting list to 'in'.` });
+                    if (playerToUpdate.status !== newStatus) {
+                        showToast({ title: "Player Promoted!", description: `${playerToPromote.name} moved from waiting list to 'in'.` });
+                    }
                 }
             }
         }
