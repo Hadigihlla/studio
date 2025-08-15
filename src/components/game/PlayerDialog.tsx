@@ -39,9 +39,7 @@ const formSchema = z.object({
   name: z.string().min(2, {
     message: "Player name must be at least 2 characters.",
   }),
-  points: z.coerce.number().int().min(0, {
-      message: "Points must be a positive number."
-  }),
+  points: z.coerce.number().int(),
   photoURL: z.string().optional(),
 })
 
