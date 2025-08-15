@@ -198,7 +198,9 @@ export default function Home() {
   }, [matchToPrint]);
   
   const handleSetAvailability = (playerId: string, newStatus: PlayerStatus) => {
-    if (gamePhase !== 'availability') return;
+    if (gamePhase !== 'availability') {
+      return;
+    }
 
     let allPlayers = [...players];
     let allGuests = [...guestPlayers];
@@ -237,17 +239,21 @@ export default function Home() {
           .sort((a, b) => (a.waitingTimestamp || 0) - (b.waitingTimestamp || 0));
 
         if (waitingList.length > 0) {
-          const playerToPromote = waitingList[0];
-          playerToPromote.status = 'in';
-          playerToPromote.waitingTimestamp = null;
+          const playerToPromoteId = waitingList[0].id;
           
-          // Update the promoted player in the correct array
-          if (playerToPromote.id.startsWith('guest')) {
-             const guestIdx = allGuests.findIndex(g => g.id === playerToPromote.id);
-             if (guestIdx > -1) allGuests[guestIdx] = playerToPromote as GuestPlayer;
+          // Find and update the promoted player in the correct array
+          if (playerToPromoteId.startsWith('guest')) {
+             const guestIdx = allGuests.findIndex(g => g.id === playerToPromoteId);
+             if (guestIdx > -1) {
+                allGuests[guestIdx].status = 'in';
+                allGuests[guestIdx].waitingTimestamp = null;
+             }
           } else {
-             const playerIdx = allPlayers.findIndex(p => p.id === playerToPromote.id);
-             if (playerIdx > -1) allPlayers[playerIdx] = playerToPromote;
+             const playerIdx = allPlayers.findIndex(p => p.id === playerToPromoteId);
+             if (playerIdx > -1) {
+                allPlayers[playerIdx].status = 'in';
+                allPlayers[playerIdx].waitingTimestamp = null;
+             }
           }
         }
       }
@@ -810,3 +816,4 @@ export default function Home() {
     </>
   );
 }
+
