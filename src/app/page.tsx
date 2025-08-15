@@ -199,46 +199,90 @@ export default function Home() {
   
   const handleSetAvailability = (playerId: string, newStatus: PlayerStatus) => {
     if (gamePhase !== 'availability') {
-      showToast({
-          variant: 'destructive',
-          title: 'Availability Locked',
-          description: 'Cannot change status after teams have been drafted.'
-      });
-      return;
+        // Silently return if game is not in availability phase to prevent changes
+        return;
     }
 
+    const isGuest = playerId.startsWith('guest');
+
+    // If a guest is setting status to 'out', remove them from the list.
+    if (isGuest && newStatus === 'out') {
+        const guestToRemove = guestPlayers.find(p => p.id === playerId);
+        if (guestToRemove) {
+            const wasGuestIn = guestToRemove.status === 'in';
+            setGuestPlayers(current => current.filter(g => g.id !== playerId));
+
+            // If the removed guest was 'in', we need to promote someone.
+            if (wasGuestIn) {
+                // Promote logic needs access to both player and guest waiting lists
+                setPlayers(currentPlayers => {
+                    setGuestPlayers(currentGuests => {
+                        const combinedWaitingList = [
+                            ...currentPlayers.filter(p => p.status === 'waiting'),
+                            ...currentGuests.filter(g => g.status === 'waiting')
+                        ].sort((a, b) => (a.waitingTimestamp || 0) - (b.waitingTimestamp || 0));
+        
+                        if (combinedWaitingList.length > 0) {
+                            const playerToPromote = combinedWaitingList[0];
+                            playerToPromote.status = 'in';
+                            playerToPromote.waitingTimestamp = null;
+        
+                            if (playerToPromote.isGuest) {
+                                const guestIdx = currentGuests.findIndex(g => g.id === playerToPromote.id);
+                                if (guestIdx > -1) currentGuests[guestIdx] = playerToPromote as GuestPlayer;
+                            } else {
+                                const playerIdx = currentPlayers.findIndex(p => p.id === playerToPromote.id);
+                                if (playerIdx > -1) currentPlayers[playerIdx] = playerToPromote;
+                                // Important: We need to return a new array for state update to trigger
+                                setPlayers([...currentPlayers]); 
+                            }
+                        }
+                        // Return new guest array
+                        return [...currentGuests];
+                    });
+                    // Return new player array
+                    return [...currentPlayers];
+                });
+            }
+        }
+        return; // Exit after removing guest
+    }
+
+    // --- Regular status change logic for roster players and non-out guests ---
     setPlayers(currentPlayers => {
+        let tempPlayers = [...currentPlayers];
+        
         setGuestPlayers(currentGuests => {
-            let allPlayers = [...currentPlayers];
-            let allGuests = [...currentGuests];
-            const isGuest = playerId.startsWith('guest');
+            let tempGuests = [...currentGuests];
         
             let playerToUpdate: Player | GuestPlayer | undefined;
             if (isGuest) {
-                playerToUpdate = allGuests.find(p => p.id === playerId);
+                playerToUpdate = tempGuests.find(p => p.id === playerId);
             } else {
-                playerToUpdate = allPlayers.find(p => p.id === playerId);
+                playerToUpdate = tempPlayers.find(p => p.id === playerId);
             }
-
-            if (!playerToUpdate) return currentGuests; // Should not happen
+    
+            if (!playerToUpdate) {
+                // This case should ideally not be reached. Return original state.
+                return isGuest ? tempGuests : (setPlayers(tempPlayers), tempGuests);
+            }
 
             const wasPlayerIn = playerToUpdate.status === 'in';
             const originalStatus = playerToUpdate.status;
 
             // Tentatively apply the new status
             if (newStatus === 'in') {
-                const currentlyInCount = allPlayers.filter(p => p.status === 'in').length + allGuests.filter(p => p.status === 'in').length;
+                const currentlyInCount = tempPlayers.filter(p => p.status === 'in').length + tempGuests.filter(p => p.status === 'in').length;
                 if (currentlyInCount < MAX_PLAYERS_IN) {
                     playerToUpdate.status = 'in';
                     playerToUpdate.waitingTimestamp = null;
                 } else {
                     playerToUpdate.status = 'waiting';
-                    // Only set timestamp if they weren't already waiting
                     if (originalStatus !== 'waiting') {
                         playerToUpdate.waitingTimestamp = Date.now();
                     }
                 }
-            } else { // 'out' or 'undecided'
+            } else { // 'out' or 'undecided' for roster players
                 playerToUpdate.status = newStatus;
                 playerToUpdate.waitingTimestamp = null;
             }
@@ -246,8 +290,8 @@ export default function Home() {
             // If a player who was 'in' drops out, promote someone from the waiting list
             if (wasPlayerIn && playerToUpdate.status !== 'in') {
                 const combinedWaitingList = [
-                    ...allPlayers.filter(p => p.status === 'waiting'),
-                    ...allGuests.filter(p => p.status === 'waiting')
+                    ...tempPlayers.filter(p => p.status === 'waiting'),
+                    ...tempGuests.filter(p => p.status === 'waiting')
                 ].sort((a, b) => (a.waitingTimestamp || 0) - (b.waitingTimestamp || 0));
 
                 if (combinedWaitingList.length > 0) {
@@ -255,33 +299,26 @@ export default function Home() {
                     playerToPromote.status = 'in';
                     playerToPromote.waitingTimestamp = null;
 
-                    // Update the promoted player in the correct original array
                     if (playerToPromote.isGuest) {
-                        const guestIdx = allGuests.findIndex(g => g.id === playerToPromote.id);
-                        if (guestIdx > -1) allGuests[guestIdx] = playerToPromote as GuestPlayer;
+                        const guestIdx = tempGuests.findIndex(g => g.id === playerToPromote.id);
+                        if (guestIdx > -1) tempGuests[guestIdx] = playerToPromote as GuestPlayer;
                     } else {
-                        const playerIdx = allPlayers.findIndex(p => p.id === playerToPromote.id);
-                        if (playerIdx > -1) allPlayers[playerIdx] = playerToPromote;
+                        const playerIdx = tempPlayers.findIndex(p => p.id === playerToPromote.id);
+                        if (playerIdx > -1) tempPlayers[playerIdx] = playerToPromote;
                     }
                 }
             }
             
-            // Return the updated arrays for state update
             if (isGuest) {
-                return [...allGuests];
+                return [...tempGuests];
             } else {
-                // If it was a roster player, we only need to update the guest array reference
-                // if a guest was promoted. Otherwise, returning the original `currentGuests` is fine.
-                // The most reliable way is to just return the (potentially) modified array.
-                setPlayers([...allPlayers]);
-                return [...allGuests]; 
+                setPlayers([...tempPlayers]);
+                return tempGuests; 
             }
         });
-        // We return the original players array because the guest setter will trigger the necessary re-render.
-        // The actual update for `players` is done inside the guest setter.
         return currentPlayers;
     });
-  };
+};
 
   const handleOpenPlayerDialog = (player: Player | null) => {
     setEditingPlayer(player);
