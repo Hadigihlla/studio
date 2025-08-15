@@ -7,7 +7,7 @@ export function Header() {
       <div className="flex justify-center items-center gap-2 md:gap-4">
         <Trophy className="w-7 h-7 md:w-12 md:h-12 text-primary" />
         <h1 className="text-3xl md:text-5xl font-bold font-headline text-foreground">
-          Gridiron Guru
+          Hirafus League
         </h1>
       </div>
        <p className="mt-2 text-base md:text-xl font-semibold text-muted-foreground">
