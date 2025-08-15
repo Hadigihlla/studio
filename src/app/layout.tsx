@@ -1,6 +1,5 @@
 import type {Metadata} from 'next';
 import './globals.css';
-import { Toaster } from "@/components/ui/toaster"
 import { Inter, Space_Grotesk } from 'next/font/google';
 
 const inter = Inter({
@@ -33,7 +32,6 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased">
         {children}
-        <Toaster />
       </body>
     </html>
   );

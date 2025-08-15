@@ -24,6 +24,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { initialPlayers } from "@/lib/initial-players";
 import { cn } from "@/lib/utils";
 import { PlusOneManager } from "@/components/game/PlusOneManager";
+import { Toaster } from "@/components/ui/toaster";
 
 const MAX_PLAYERS_IN = 14;
 const MAX_GUESTS = 4;
@@ -594,6 +595,7 @@ export default function Home() {
 
   return (
     <>
+      <Toaster />
       <main className="container mx-auto p-2 md:p-8 relative no-print">
         {winner && <Confetti />}
         <Header />
