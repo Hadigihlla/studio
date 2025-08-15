@@ -200,46 +200,67 @@ export default function Home() {
   const handleSetAvailability = (playerId: string, newStatus: PlayerStatus) => {
     if (gamePhase !== 'availability') return;
 
-    const allPlayersAndGuests = [...players, ...guestPlayers];
-    const currentlyIn = allPlayersAndGuests.filter(p => p.status === 'in');
+    let allPlayers = [...players];
+    let allGuests = [...guestPlayers];
+    const isGuest = playerId.startsWith('guest');
 
-    const updatePlayerOrGuestState = (id: string, updates: Partial<Player>) => {
-      if(id.startsWith('guest')) {
-          setGuestPlayers(current => current.map(p => p.id === id ? {...p, ...updates} : p));
-      } else {
-          setPlayers(current => current.map(p => p.id === id ? {...p, ...updates} : p));
-      }
-    };
+    const playerIndex = isGuest 
+      ? allGuests.findIndex(p => p.id === playerId) 
+      : allPlayers.findIndex(p => p.id === playerId);
 
-    const playerToUpdate = allPlayersAndGuests.find(p => p.id === playerId);
-    if (!playerToUpdate) return;
-    
+    if (playerIndex === -1) return;
+
+    const playerToUpdate = isGuest ? allGuests[playerIndex] : allPlayers[playerIndex];
+
     // Player wants to be IN
     if (newStatus === 'in') {
-        if (currentlyIn.length < MAX_PLAYERS_IN) {
-            updatePlayerOrGuestState(playerId, { status: 'in', waitingTimestamp: null });
-        } else {
-            updatePlayerOrGuestState(playerId, { status: 'waiting', waitingTimestamp: playerToUpdate.waitingTimestamp || Date.now() });
+      const currentlyInCount = allPlayers.filter(p => p.status === 'in').length + allGuests.filter(p => p.status === 'in').length;
+      if (currentlyInCount < MAX_PLAYERS_IN) {
+        playerToUpdate.status = 'in';
+        playerToUpdate.waitingTimestamp = null;
+      } else {
+        playerToUpdate.status = 'waiting';
+        if (!playerToUpdate.waitingTimestamp) { // only set timestamp if not already on waiting list
+            playerToUpdate.waitingTimestamp = Date.now();
         }
+      }
     } else { // Player is setting status to 'out' or 'undecided'
-        const wasPlayerIn = playerToUpdate.status === 'in';
-        updatePlayerOrGuestState(playerId, { status: newStatus, waitingTimestamp: null });
+      const wasPlayerIn = playerToUpdate.status === 'in';
+      playerToUpdate.status = newStatus;
+      playerToUpdate.waitingTimestamp = null;
 
-        // If a player who was 'in' drops out, promote someone from the waiting list
-        if (wasPlayerIn) {
-            const allCurrentPlayers = [...players, ...guestPlayers];
-            const waitingList = allCurrentPlayers
-                .filter(p => p.status === 'waiting' && p.id !== playerId)
-                .sort((a, b) => (a.waitingTimestamp || 0) - (b.waitingTimestamp || 0));
+      // If a player who was 'in' drops out, promote someone from the waiting list
+      if (wasPlayerIn) {
+        const combinedPlayers = [...allPlayers, ...allGuests];
+        const waitingList = combinedPlayers
+          .filter(p => p.status === 'waiting')
+          .sort((a, b) => (a.waitingTimestamp || 0) - (b.waitingTimestamp || 0));
 
-            if (waitingList.length > 0) {
-                const playerToPromote = waitingList[0];
-                updatePlayerOrGuestState(playerToPromote.id, { status: 'in', waitingTimestamp: null });
-            }
+        if (waitingList.length > 0) {
+          const playerToPromote = waitingList[0];
+          playerToPromote.status = 'in';
+          playerToPromote.waitingTimestamp = null;
+          
+          // Update the promoted player in the correct array
+          if (playerToPromote.id.startsWith('guest')) {
+             const guestIdx = allGuests.findIndex(g => g.id === playerToPromote.id);
+             if (guestIdx > -1) allGuests[guestIdx] = playerToPromote as GuestPlayer;
+          } else {
+             const playerIdx = allPlayers.findIndex(p => p.id === playerToPromote.id);
+             if (playerIdx > -1) allPlayers[playerIdx] = playerToPromote;
+          }
         }
+      }
+    }
+
+    if (isGuest) {
+      allGuests[playerIndex] = playerToUpdate as GuestPlayer;
+      setGuestPlayers([...allGuests]);
+    } else {
+      allPlayers[playerIndex] = playerToUpdate;
+      setPlayers([...allPlayers]);
     }
   };
-
 
   const handleOpenPlayerDialog = (player: Player | null) => {
     setEditingPlayer(player);

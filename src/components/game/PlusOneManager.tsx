@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Minus, Plus, UserPlus } from "lucide-react";
 import type { Toast } from "@/hooks/use-toast";
-import type { GuestPlayer, PlayerStatus } from "@/types";
+import type { GuestPlayer } from "@/types";
 
 interface PlusOneManagerProps {
   guestPlayers: GuestPlayer[];
@@ -29,11 +29,12 @@ export function PlusOneManager({
   
   const handleIncrement = () => {
     if (guestPlayers.length < maxGuests) {
+      const isGameFull = playersInCount >= maxPlayersIn;
       const newGuest: GuestPlayer = {
         id: `guest${Date.now()}`,
         name: `Guest ${guestPlayers.length + 1}`,
         points: medianPoints,
-        status: playersInCount >= maxPlayersIn ? 'waiting' : 'in',
+        status: isGameFull ? 'waiting' : 'in',
         matchesPlayed: 0,
         wins: 0,
         draws: 0,
@@ -41,7 +42,7 @@ export function PlusOneManager({
         form: [],
         photoURL: `https://placehold.co/40x40.png?text=G${guestPlayers.length + 1}`,
         isGuest: true,
-        waitingTimestamp: playersInCount >= maxPlayersIn ? Date.now() : null,
+        waitingTimestamp: isGameFull ? Date.now() : null,
       };
 
       setGuestPlayers(current => [...current, newGuest]);
@@ -50,7 +51,10 @@ export function PlusOneManager({
 
   const handleDecrement = () => {
     if (guestPlayers.length > 0) {
-      setGuestPlayers(current => current.slice(0, -1));
+        // Find the most recently added guest that is not 'in' or 'waiting' if possible,
+        // otherwise remove the last one added.
+        const lastGuest = guestPlayers[guestPlayers.length - 1];
+        setGuestPlayers(current => current.filter(g => g.id !== lastGuest.id));
     }
   };
 
