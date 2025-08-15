@@ -1,7 +1,7 @@
 
 "use client";
 
-import type { Player, Team, Result, Penalty, Settings } from "@/types";
+import type { Player, Team, Result, Penalty, Settings, GuestPlayer } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Shield, Trophy, Clock, UserX } from "lucide-react";
@@ -31,7 +31,7 @@ const PenaltyIcons = ({
   isLocked,
   settings
 } : {
-  player: Player,
+  player: Player | GuestPlayer,
   currentPenalty: Penalty,
   onSetPenalty: (playerId: string, penalty: Penalty) => void,
   isLocked: boolean,
@@ -101,7 +101,7 @@ const TeamCard = ({
   isLocked,
   settings
 }: {
-  team: Player[];
+  team: (Player | GuestPlayer)[];
   title: string;
   titleColor: string;
   isWinner: boolean;

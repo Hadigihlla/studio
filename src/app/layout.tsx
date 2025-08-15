@@ -13,7 +13,7 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: 'Hirafus League',
+  title: 'Gridiron Guru',
   description: 'Weekly Football Team Selections & Leaderboard',
   manifest: '/manifest.json',
 };

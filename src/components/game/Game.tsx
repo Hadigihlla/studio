@@ -319,8 +319,8 @@ export function Game() {
 
     // Clone players to avoid direct mutation
     const rankedPlayersIn = [...playersIn].sort((a, b) => b.points - a.points);
-    const teamA: Player[] = [];
-    const teamB: Player[] = [];
+    const teamA: (Player | GuestPlayer)[] = [];
+    const teamB: (Player | GuestPlayer)[] = [];
 
     // Serpent/snake draft logic
     let teamATotal = 0;
@@ -375,7 +375,7 @@ export function Game() {
     toast({ title: "Manual Teams Confirmed!", description: "The teams you selected have been locked in." });
   }
 
-  const updatePlayerStats = (playersToUpdate: Player[], result: 'W' | 'D' | 'L', penaltiesForMatch: Record<string, Penalty>) => {
+  const updatePlayerStats = (playersToUpdate: (Player | GuestPlayer)[], result: 'W' | 'D' | 'L', penaltiesForMatch: Record<string, Penalty>) => {
     const playerIdsToUpdate = new Set(playersToUpdate.map(p => p.id));
     
     setPlayers(prev => prev.map(p => {
@@ -651,7 +651,7 @@ export function Game() {
                           guestPlayers={guestPlayers}
                           setGuestPlayers={setGuestPlayers}
                           maxGuests={MAX_GUESTS}
-                          playersInCount={playersIn.length}
+                          playersInCount={rosterInCount + guestsInCount}
                           maxPlayersIn={MAX_PLAYERS_IN}
                           showToast={showToast}
                           medianPoints={

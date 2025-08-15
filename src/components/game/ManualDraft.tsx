@@ -1,7 +1,7 @@
 
 "use client";
 
-import type { Player, Team } from "@/types";
+import type { Player, GuestPlayer, Team } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PlayerLeaderboard } from "./PlayerLeaderboard";
 import { Separator } from "@/components/ui/separator";
@@ -10,7 +10,7 @@ import { Edit } from "lucide-react";
 
 interface ManualDraftProps {
     manualTeams: Team;
-    unassignedPlayers: Player[];
+    unassignedPlayers: (Player | GuestPlayer)[];
     onAssignPlayer: (playerId: string, team: 'teamA' | 'teamB' | null) => void;
     onConfirmDraft: () => void;
 }

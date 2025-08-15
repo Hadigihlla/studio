@@ -1,7 +1,7 @@
 
 "use client";
 
-import type { Player, PlayerStatus } from "@/types";
+import type { Player, PlayerStatus, GuestPlayer } from "@/types";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -12,13 +12,13 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 
 interface PlayerLeaderboardProps {
-  players: (Player)[];
+  players: (Player | GuestPlayer)[];
   onSetAvailability?: (playerId: string, status: PlayerStatus) => void;
   gamePhase?: "availability" | "teams" | "results" | "manual-draft";
   onAssignPlayer?: (playerId: string, team: 'teamA' | 'teamB' | null) => void;
 }
 
-const AvailabilityControls = ({ player, onSetAvailability, isLocked }: { player: Player, onSetAvailability: (id: string, status: PlayerStatus) => void, isLocked: boolean }) => {
+const AvailabilityControls = ({ player, onSetAvailability, isLocked }: { player: Player | GuestPlayer, onSetAvailability: (id: string, status: PlayerStatus) => void, isLocked: boolean }) => {
     const isPlayerIn = player.status === 'in' || player.status === 'waiting';
     
     const handleSwitchChange = (checked: boolean) => {
@@ -42,7 +42,7 @@ const AvailabilityControls = ({ player, onSetAvailability, isLocked }: { player:
     );
 };
 
-const ManualDraftControls = ({ player, onAssignPlayer }: { player: Player, onAssignPlayer: (id: string, team: 'teamA' | 'teamB' | null) => void }) => (
+const ManualDraftControls = ({ player, onAssignPlayer }: { player: Player | GuestPlayer, onAssignPlayer: (id: string, team: 'teamA' | 'teamB' | null) => void }) => (
     <div className="flex justify-center items-center gap-2">
         <Button size="sm" variant="outline" className="text-blue-400 border-blue-400/50 hover:bg-blue-400/10 hover:text-blue-400" onClick={() => onAssignPlayer(player.id, 'teamA')}>A</Button>
         <Button size="sm" variant="outline" className="text-red-400 border-red-400/50 hover:bg-red-400/10 hover:text-red-400" onClick={() => onAssignPlayer(player.id, 'teamB')}>B</Button>
@@ -50,7 +50,7 @@ const ManualDraftControls = ({ player, onAssignPlayer }: { player: Player, onAss
     </div>
 );
 
-const StatusBadge = ({ player }: { player: Player }) => {
+const StatusBadge = ({ player }: { player: Player | GuestPlayer }) => {
     if (player.isGuest) {
       if (player.status === 'waiting') {
         return <Badge variant="outline" className="text-amber-500 border-amber-500"><Clock className="w-3 h-3 mr-1"/>WAITING</Badge>;
