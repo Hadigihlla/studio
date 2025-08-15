@@ -199,73 +199,88 @@ export default function Home() {
   
   const handleSetAvailability = (playerId: string, newStatus: PlayerStatus) => {
     if (gamePhase !== 'availability') {
+      showToast({
+          variant: 'destructive',
+          title: 'Availability Locked',
+          description: 'Cannot change status after teams have been drafted.'
+      });
       return;
     }
 
-    let allPlayers = [...players];
-    let allGuests = [...guestPlayers];
-    const isGuest = playerId.startsWith('guest');
+    setPlayers(currentPlayers => {
+        setGuestPlayers(currentGuests => {
+            let allPlayers = [...currentPlayers];
+            let allGuests = [...currentGuests];
+            const isGuest = playerId.startsWith('guest');
+        
+            let playerToUpdate: Player | GuestPlayer | undefined;
+            if (isGuest) {
+                playerToUpdate = allGuests.find(p => p.id === playerId);
+            } else {
+                playerToUpdate = allPlayers.find(p => p.id === playerId);
+            }
 
-    const playerIndex = isGuest 
-      ? allGuests.findIndex(p => p.id === playerId) 
-      : allPlayers.findIndex(p => p.id === playerId);
+            if (!playerToUpdate) return currentGuests; // Should not happen
 
-    if (playerIndex === -1) return;
+            const wasPlayerIn = playerToUpdate.status === 'in';
+            const originalStatus = playerToUpdate.status;
 
-    const playerToUpdate = isGuest ? allGuests[playerIndex] : allPlayers[playerIndex];
+            // Tentatively apply the new status
+            if (newStatus === 'in') {
+                const currentlyInCount = allPlayers.filter(p => p.status === 'in').length + allGuests.filter(p => p.status === 'in').length;
+                if (currentlyInCount < MAX_PLAYERS_IN) {
+                    playerToUpdate.status = 'in';
+                    playerToUpdate.waitingTimestamp = null;
+                } else {
+                    playerToUpdate.status = 'waiting';
+                    // Only set timestamp if they weren't already waiting
+                    if (originalStatus !== 'waiting') {
+                        playerToUpdate.waitingTimestamp = Date.now();
+                    }
+                }
+            } else { // 'out' or 'undecided'
+                playerToUpdate.status = newStatus;
+                playerToUpdate.waitingTimestamp = null;
+            }
 
-    // Player wants to be IN
-    if (newStatus === 'in') {
-      const currentlyInCount = allPlayers.filter(p => p.status === 'in').length + allGuests.filter(p => p.status === 'in').length;
-      if (currentlyInCount < MAX_PLAYERS_IN) {
-        playerToUpdate.status = 'in';
-        playerToUpdate.waitingTimestamp = null;
-      } else {
-        playerToUpdate.status = 'waiting';
-        if (!playerToUpdate.waitingTimestamp) { // only set timestamp if not already on waiting list
-            playerToUpdate.waitingTimestamp = Date.now();
-        }
-      }
-    } else { // Player is setting status to 'out' or 'undecided'
-      const wasPlayerIn = playerToUpdate.status === 'in';
-      playerToUpdate.status = newStatus;
-      playerToUpdate.waitingTimestamp = null;
+            // If a player who was 'in' drops out, promote someone from the waiting list
+            if (wasPlayerIn && playerToUpdate.status !== 'in') {
+                const combinedWaitingList = [
+                    ...allPlayers.filter(p => p.status === 'waiting'),
+                    ...allGuests.filter(p => p.status === 'waiting')
+                ].sort((a, b) => (a.waitingTimestamp || 0) - (b.waitingTimestamp || 0));
 
-      // If a player who was 'in' drops out, promote someone from the waiting list
-      if (wasPlayerIn) {
-        const combinedPlayers = [...allPlayers, ...allGuests];
-        const waitingList = combinedPlayers
-          .filter(p => p.status === 'waiting')
-          .sort((a, b) => (a.waitingTimestamp || 0) - (b.waitingTimestamp || 0));
+                if (combinedWaitingList.length > 0) {
+                    const playerToPromote = combinedWaitingList[0];
+                    playerToPromote.status = 'in';
+                    playerToPromote.waitingTimestamp = null;
 
-        if (waitingList.length > 0) {
-          const playerToPromoteId = waitingList[0].id;
-          
-          // Find and update the promoted player in the correct array
-          if (playerToPromoteId.startsWith('guest')) {
-             const guestIdx = allGuests.findIndex(g => g.id === playerToPromoteId);
-             if (guestIdx > -1) {
-                allGuests[guestIdx].status = 'in';
-                allGuests[guestIdx].waitingTimestamp = null;
-             }
-          } else {
-             const playerIdx = allPlayers.findIndex(p => p.id === playerToPromoteId);
-             if (playerIdx > -1) {
-                allPlayers[playerIdx].status = 'in';
-                allPlayers[playerIdx].waitingTimestamp = null;
-             }
-          }
-        }
-      }
-    }
-
-    if (isGuest) {
-      allGuests[playerIndex] = playerToUpdate as GuestPlayer;
-      setGuestPlayers([...allGuests]);
-    } else {
-      allPlayers[playerIndex] = playerToUpdate;
-      setPlayers([...allPlayers]);
-    }
+                    // Update the promoted player in the correct original array
+                    if (playerToPromote.isGuest) {
+                        const guestIdx = allGuests.findIndex(g => g.id === playerToPromote.id);
+                        if (guestIdx > -1) allGuests[guestIdx] = playerToPromote as GuestPlayer;
+                    } else {
+                        const playerIdx = allPlayers.findIndex(p => p.id === playerToPromote.id);
+                        if (playerIdx > -1) allPlayers[playerIdx] = playerToPromote;
+                    }
+                }
+            }
+            
+            // Return the updated arrays for state update
+            if (isGuest) {
+                return [...allGuests];
+            } else {
+                // If it was a roster player, we only need to update the guest array reference
+                // if a guest was promoted. Otherwise, returning the original `currentGuests` is fine.
+                // The most reliable way is to just return the (potentially) modified array.
+                setPlayers([...allPlayers]);
+                return [...allGuests]; 
+            }
+        });
+        // We return the original players array because the guest setter will trigger the necessary re-render.
+        // The actual update for `players` is done inside the guest setter.
+        return currentPlayers;
+    });
   };
 
   const handleOpenPlayerDialog = (player: Player | null) => {
@@ -816,4 +831,3 @@ export default function Home() {
     </>
   );
 }
-

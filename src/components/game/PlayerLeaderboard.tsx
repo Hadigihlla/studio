@@ -18,7 +18,7 @@ interface PlayerLeaderboardProps {
   onAssignPlayer?: (playerId: string, team: 'teamA' | 'teamB' | null) => void;
 }
 
-const AvailabilityControls = ({ player, onSetAvailability }: { player: Player, onSetAvailability: (id: string, status: PlayerStatus) => void }) => {
+const AvailabilityControls = ({ player, onSetAvailability, isLocked }: { player: Player, onSetAvailability: (id: string, status: PlayerStatus) => void, isLocked: boolean }) => {
     const isPlayerIn = player.status === 'in' || player.status === 'waiting';
     
     const handleSwitchChange = (checked: boolean) => {
@@ -29,14 +29,15 @@ const AvailabilityControls = ({ player, onSetAvailability }: { player: Player, o
 
     return (
         <div className="flex items-center justify-center space-x-2">
-             <Label htmlFor={`availability-${player.id}`} className={cn("text-xs font-semibold", !isPlayerIn && "text-muted-foreground/80")}>OUT</Label>
+             <Label htmlFor={`availability-${player.id}`} className={cn("text-xs font-semibold", !isPlayerIn && "text-muted-foreground/80", isLocked && "opacity-50")}>OUT</Label>
              <Switch
                 id={`availability-${player.id}`}
                 checked={isPlayerIn}
                 onCheckedChange={handleSwitchChange}
+                disabled={isLocked}
                 className="data-[state=checked]:bg-green-500"
              />
-             <Label htmlFor={`availability-${player.id}`} className={cn("text-xs font-semibold", isPlayerIn && "text-primary")}>IN</Label>
+             <Label htmlFor={`availability-${player.id}`} className={cn("text-xs font-semibold", isPlayerIn && "text-primary", isLocked && "opacity-50")}>IN</Label>
         </div>
     );
 };
@@ -66,6 +67,7 @@ const StatusBadge = ({ player }: { player: Player }) => {
 };
 
 export function PlayerLeaderboard({ players, onSetAvailability, gamePhase, onAssignPlayer }: PlayerLeaderboardProps) {
+  const isAvailabilityLocked = gamePhase !== 'availability';
   const showAvailabilityControls = gamePhase === 'availability' && onSetAvailability;
   const showManualDraftControls = gamePhase === 'manual-draft' && onAssignPlayer;
 
@@ -104,7 +106,7 @@ export function PlayerLeaderboard({ players, onSetAvailability, gamePhase, onAss
                   {player.isGuest ? '-' : player.points}
                 </TableCell>
                 <TableCell className="text-center p-2 md:p-4">
-                    {showAvailabilityControls && <AvailabilityControls player={player} onSetAvailability={onSetAvailability} />}
+                    {showAvailabilityControls && <AvailabilityControls player={player} onSetAvailability={onSetAvailability} isLocked={isAvailabilityLocked} />}
                     {showManualDraftControls && <ManualDraftControls player={player} onAssignPlayer={onAssignPlayer} />}
                     {!showAvailabilityControls && !showManualDraftControls && <StatusBadge player={player} />}
                 </TableCell>
