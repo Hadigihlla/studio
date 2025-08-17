@@ -57,34 +57,9 @@ export function Game() {
     toast(props);
   }, [toast]);
   
-  const playersWithPenalties = useMemo(() => {
-    const penaltyData = players.map(player => {
-        let latePenalties = 0;
-        let noShowPenalties = 0;
-
-        matchHistory.forEach(match => {
-            if (match.penalties && match.penalties[player.id]) {
-                if (match.penalties[player.id] === 'late') {
-                    latePenalties += settings.latePenalty;
-                } else if (match.penalties[player.id] === 'no-show') {
-                    noShowPenalties += settings.noShowPenalty;
-                }
-            }
-        });
-
-        return {
-            ...player,
-            latePenalties,
-            noShowPenalties,
-        };
-    });
-
-    return penaltyData.sort((a, b) => b.points - a.points);
-  }, [players, matchHistory, settings]);
-
   const sortedPlayers = useMemo(() => {
-    return playersWithPenalties.sort((a, b) => b.points - a.points);
-  }, [playersWithPenalties]);
+    return [...players].sort((a, b) => b.points - a.points);
+  }, [players]);
   
   const playersIn = useMemo(() => {
     const allPlayers = [...sortedPlayers, ...guestPlayers];
@@ -283,6 +258,8 @@ export function Game() {
         wins: playerData.wins,
         draws: playerData.draws,
         losses: playerData.losses,
+        lateCount: playerData.lateCount,
+        noShowCount: playerData.noShowCount,
       } : p));
       toast({ title: "Player Updated", description: `${playerData.name}'s details have been saved.` });
     } else { // Adding new player
@@ -296,6 +273,8 @@ export function Game() {
         wins: playerData.wins,
         draws: playerData.draws,
         losses: playerData.losses,
+        lateCount: playerData.lateCount,
+        noShowCount: playerData.noShowCount,
         form: [],
         waitingTimestamp: null,
       };
@@ -320,11 +299,12 @@ export function Game() {
   };
 
   const handleDraftTeams = (method: "points" | "manual") => {
+    if (playersIn.length !== 14) {
+        toast({ variant: "destructive", title: "Incorrect Player Count", description: `Drafting requires exactly 14 players to be 'In' for a 7 vs 7 match. You have ${playersIn.length}.` });
+        return;
+    }
+
     if (method === "manual") {
-      if (playersIn.length !== 14) {
-          toast({ variant: "destructive", title: "Incorrect Player Count", description: "Manual draft requires exactly 14 players to be 'In' for a 7 vs 7 match." });
-          return;
-      }
       setManualTeams({ teamA: [], teamB: [] });
       setGamePhase("manual-draft");
       toast({ title: "Manual Draft", description: "Assign players to Team A or Team B." });
@@ -332,11 +312,6 @@ export function Game() {
     }
 
     // Points-based draft
-    if (playersIn.length !== 14) {
-      toast({ variant: "destructive", title: "Incorrect Player Count", description: "Point-based draft requires exactly 14 players to be 'In' for a 7 vs 7 match." });
-      return;
-    }
-    
     const rankedPlayersIn = [...playersIn].sort((a, b) => b.points - a.points);
     const teamA: (Player | GuestPlayer)[] = [];
     const teamB: (Player | GuestPlayer)[] = [];
@@ -443,9 +418,12 @@ export function Game() {
             if (playerIndex > -1 && penalty && !tempPlayers[playerIndex].isGuest) {
                 const deduction = penalty === 'late' ? settings.latePenalty : settings.noShowPenalty;
                 penaltyMessages.push(`${tempPlayers[playerIndex].name} -${deduction}pts`);
+                const currentData = tempPlayers[playerIndex];
                 tempPlayers[playerIndex] = {
-                    ...tempPlayers[playerIndex],
-                    points: tempPlayers[playerIndex].points - deduction
+                    ...currentData,
+                    points: currentData.points - deduction,
+                    lateCount: currentData.lateCount + (penalty === 'late' ? 1 : 0),
+                    noShowCount: currentData.noShowCount + (penalty === 'no-show' ? 1 : 0),
                 };
             }
         });
@@ -527,12 +505,14 @@ export function Game() {
       ...matchToDelete.teams.teamB.map(p => p.id)
     ];
 
-    // 1. Revert penalty deductions from the deleted match
+    // 1. Revert penalty deductions and counts from the deleted match
     Object.entries(matchToDelete.penalties || {}).forEach(([playerId, penalty]) => {
       const player = playerMap.get(playerId);
       if (player && penalty && !player.isGuest) {
         const deduction = penalty === 'late' ? settings.latePenalty : settings.noShowPenalty;
         player.points += deduction;
+        if (penalty === 'late') player.lateCount = Math.max(0, player.lateCount - 1);
+        if (penalty === 'no-show') player.noShowCount = Math.max(0, player.noShowCount - 1);
       }
     });
 
@@ -575,7 +555,7 @@ export function Game() {
 
         const newForm: ('W' | 'D' | 'L')[] = [];
         // Iterate matches from newest to oldest to build the form chronologically
-        [...remainingMatches].reverse().forEach(match => {
+        [...remainingMatches].forEach(match => {
             if (newForm.length >= 5) return;
             let result: 'W' | 'D' | 'L' | null = null;
             if (match.teams.teamA.some(p => p.id === player.id)) {
@@ -586,7 +566,7 @@ export function Game() {
             if(result) newForm.push(result);
         });
         // The form should be the most recent 5
-        player.form = newForm.reverse();
+        player.form = newForm.slice(0, 5);
     });
 
     setPlayers(Array.from(playerMap.values()));

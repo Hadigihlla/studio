@@ -14,16 +14,18 @@ export interface Player {
   wins: number;
   draws: number;
   losses: number;
+  lateCount: number;
+  noShowCount: number;
   form: Form;
   photoURL?: string;
   waitingTimestamp?: number | null;
-  latePenalties?: number;
-  noShowPenalties?: number;
   isGuest?: false;
 }
 
-export interface GuestPlayer extends Omit<Player, 'isGuest'> {
+export interface GuestPlayer extends Omit<Player, 'isGuest' | 'lateCount' | 'noShowCount'> {
     isGuest: true;
+    lateCount: 0;
+    noShowCount: 0;
 }
 
 export interface Team {

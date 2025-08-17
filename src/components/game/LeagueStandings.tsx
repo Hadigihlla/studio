@@ -184,8 +184,8 @@ export function LeagueStandings({
                             <TableCell className="text-center font-mono">{player.wins}</TableCell>
                             <TableCell className="text-center font-mono">{player.draws}</TableCell>
                             <TableCell className="text-center font-mono">{player.losses}</TableCell>
-                            <TableCell className="text-center font-mono text-orange-400">{player.latePenalties || 0}</TableCell>
-                            <TableCell className="text-center font-mono text-red-500">{player.noShowPenalties || 0}</TableCell>
+                            <TableCell className="text-center font-mono text-orange-400">{player.lateCount || 0}</TableCell>
+                            <TableCell className="text-center font-mono text-red-500">{player.noShowCount || 0}</TableCell>
                             <TableCell className="text-center font-mono font-bold text-primary">
                                 {player.points}
                             </TableCell>
@@ -281,8 +281,8 @@ export function LeagueStandings({
                             <TableCell className="text-center font-mono text-base">{player.wins}</TableCell>
                             <TableCell className="text-center font-mono text-base">{player.draws}</TableCell>
                             <TableCell className="text-center font-mono text-base">{player.losses}</TableCell>
-                            <TableCell className="text-center font-mono text-base text-orange-400">{player.latePenalties || 0}</TableCell>
-                            <TableCell className="text-center font-mono text-base text-red-500">{player.noShowPenalties || 0}</TableCell>
+                            <TableCell className="text-center font-mono text-base text-orange-400">{player.lateCount || 0}</TableCell>
+                            <TableCell className="text-center font-mono text-base text-red-500">{player.noShowCount || 0}</TableCell>
                             <TableCell className="text-center font-mono font-bold text-lg printable-points">
                                 {player.points}
                             </TableCell>

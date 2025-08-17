@@ -43,6 +43,8 @@ const formSchema = z.object({
   wins: z.coerce.number().int().min(0),
   draws: z.coerce.number().int().min(0),
   losses: z.coerce.number().int().min(0),
+  lateCount: z.coerce.number().int().min(0),
+  noShowCount: z.coerce.number().int().min(0),
 })
 
 export function PlayerDialog({ isOpen, onOpenChange, onSave, player }: PlayerDialogProps) {
@@ -59,6 +61,8 @@ export function PlayerDialog({ isOpen, onOpenChange, onSave, player }: PlayerDia
       wins: 0,
       draws: 0,
       losses: 0,
+      lateCount: 0,
+      noShowCount: 0,
     },
   })
   
@@ -73,6 +77,8 @@ export function PlayerDialog({ isOpen, onOpenChange, onSave, player }: PlayerDia
           wins: player.wins,
           draws: player.draws,
           losses: player.losses,
+          lateCount: player.lateCount,
+          noShowCount: player.noShowCount,
         })
         setPreview(player.photoURL)
       } else {
@@ -84,6 +90,8 @@ export function PlayerDialog({ isOpen, onOpenChange, onSave, player }: PlayerDia
           wins: 0,
           draws: 0,
           losses: 0,
+          lateCount: 0,
+          noShowCount: 0,
         })
         setPreview(undefined);
       }
@@ -212,6 +220,34 @@ export function PlayerDialog({ isOpen, onOpenChange, onSave, player }: PlayerDia
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Losses</FormLabel>
+                      <FormControl>
+                        <Input type="number" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+            </div>
+             <div className="grid grid-cols-2 gap-4">
+               <FormField
+                  control={form.control}
+                  name="lateCount"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Late</FormLabel>
+                      <FormControl>
+                        <Input type="number" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                 <FormField
+                  control={form.control}
+                  name="noShowCount"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>No Show</FormLabel>
                       <FormControl>
                         <Input type="number" {...field} />
                       </FormControl>
