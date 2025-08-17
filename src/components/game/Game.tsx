@@ -385,7 +385,7 @@ export function Game() {
     setPlayers(prev => prev.map(p => {
         if (!p.isGuest && playerIdsToUpdate.has(p.id)) {
             const wasNoShow = penaltiesForMatch[p.id] === 'no-show';
-            const pointsGained = result === 'W' ? 3 : result === 'D' ? 2 : 1;
+            const pointsGained = result === 'W' ? 3 : result === 'D' ? 2 : 0;
             
             // No-show players don't get points for a Win or Draw
             const shouldGetPoints = !(wasNoShow && (result === 'W' || result === 'D'));
@@ -540,7 +540,7 @@ export function Game() {
         const shouldRevertPoints = !(wasNoShow && (result === 'W' || result === 'D'));
 
         if (shouldRevertPoints) {
-          const pointsToRevert = result === 'W' ? 3 : result === 'D' ? 2 : 1;
+          const pointsToRevert = result === 'W' ? 3 : result === 'D' ? 2 : 0;
           player.points -= pointsToRevert;
         }
       }
@@ -869,3 +869,5 @@ export function Game() {
     </>
   );
 }
+
+    
