@@ -12,6 +12,7 @@ interface GameControlsProps {
   onDraftTeams: (method: 'points' | 'manual') => void;
   onRecordResult: () => void;
   onResetGame: () => void;
+  onCancelDraft: () => void;
   gamePhase: "availability" | "teams" | "results" | "manual-draft";
   playersInCount: number;
   unassignedCount: number; // For manual draft
@@ -23,6 +24,7 @@ export function GameControls({
   onDraftTeams,
   onRecordResult,
   onResetGame,
+  onCancelDraft,
   gamePhase,
   playersInCount,
   unassignedCount,
@@ -61,12 +63,10 @@ export function GameControls({
         )}
 
         {gamePhase === "manual-draft" && (
-          <div className="space-y-4">
-              <Button onClick={onResetGame} className="w-full" variant="outline">
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                  Cancel Draft
-              </Button>
-          </div>
+            <Button onClick={onCancelDraft} className="w-full" variant="outline">
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Cancel Draft
+            </Button>
         )}
 
         {gamePhase === "teams" && (
@@ -94,6 +94,10 @@ export function GameControls({
               <Trophy className="mr-2 h-4 w-4" />
               Record Final Score
             </Button>
+            <Button onClick={onCancelDraft} className="w-full" variant="outline">
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Cancel Draft
+            </Button>
           </div>
         )}
 
@@ -109,3 +113,5 @@ export function GameControls({
     </Card>
   );
 }
+
+    

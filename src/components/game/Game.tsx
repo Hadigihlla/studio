@@ -111,6 +111,10 @@ export function Game() {
       const savedGuests = localStorage.getItem("guestPlayers");
       const savedMatches = localStorage.getItem("matchHistory");
       const savedSettings = localStorage.getItem("settings");
+      const savedGamePhase = localStorage.getItem("gamePhase");
+      const savedTeams = localStorage.getItem("teams");
+      const savedScores = localStorage.getItem("scores");
+      const savedPenalties = localStorage.getItem("penalties");
 
       if (savedPlayers) {
         setPlayers(JSON.parse(savedPlayers));
@@ -119,17 +123,16 @@ export function Game() {
         setPlayers(playersWithIds);
       }
       
-      if(savedGuests) {
-        setGuestPlayers(JSON.parse(savedGuests));
-      }
+      if(savedGuests) setGuestPlayers(JSON.parse(savedGuests));
+      if (savedMatches) setMatchHistory(JSON.parse(savedMatches));
+      if (savedSettings) setSettings(JSON.parse(savedSettings));
 
-      if (savedMatches) {
-        setMatchHistory(JSON.parse(savedMatches));
-      }
+      // Restore in-progress game
+      if (savedGamePhase) setGamePhase(JSON.parse(savedGamePhase));
+      if (savedTeams) setTeams(JSON.parse(savedTeams));
+      if (savedScores) setScores(JSON.parse(savedScores));
+      if (savedPenalties) setPenalties(JSON.parse(savedPenalties));
 
-      if (savedSettings) {
-        setSettings(JSON.parse(savedSettings));
-      }
 
     } catch (error) {
         console.error("Failed to load data from localStorage", error);
@@ -151,6 +154,13 @@ export function Game() {
             localStorage.setItem("guestPlayers", JSON.stringify(guestPlayers));
             localStorage.setItem("matchHistory", JSON.stringify(matchHistory));
             localStorage.setItem("settings", JSON.stringify(settings));
+
+            // Save in-progress game state
+            localStorage.setItem("gamePhase", JSON.stringify(gamePhase));
+            localStorage.setItem("teams", JSON.stringify(teams));
+            localStorage.setItem("scores", JSON.stringify(scores));
+            localStorage.setItem("penalties", JSON.stringify(penalties));
+
         } catch (error) {
             console.error("Failed to save data to localStorage", error);
             showToast({
@@ -160,7 +170,7 @@ export function Game() {
             });
         }
     }
-  }, [players, guestPlayers, matchHistory, settings, isLoading, showToast]);
+  }, [players, guestPlayers, matchHistory, settings, gamePhase, teams, scores, penalties, isLoading, showToast]);
   
   useEffect(() => {
     if (matchToPrint && printResultRef.current) {
@@ -477,8 +487,24 @@ export function Game() {
     setScores({ teamA: 0, teamB: 0 });
     setGuestPlayers([]);
     setPlayers(prev => prev.map(p => ({...p, status: 'undecided', waitingTimestamp: null})));
+    
+    // Clear in-progress game from storage
+    localStorage.removeItem('gamePhase');
+    localStorage.removeItem('teams');
+    localStorage.removeItem('scores');
+    localStorage.removeItem('penalties');
+
     toast({ title: "New Game Started", description: "Player availability has been reset. Good luck!" });
   };
+
+  const handleCancelDraft = () => {
+    setTeams(null);
+    setManualTeams({ teamA: [], teamB: [] });
+    setGamePhase("availability");
+    setPenalties({});
+    setScores({ teamA: 0, teamB: 0 });
+    toast({ title: "Draft Cancelled", description: "You have returned to the availability screen." });
+  }
   
   const handleSetPenalty = (playerId: string, penalty: Penalty) => {
     setPenalties(prev => {
@@ -620,6 +646,7 @@ export function Game() {
           setGuestPlayers(data.guestPlayers || []);
           setMatchHistory(data.matchHistory);
           setSettings(data.settings);
+          handleResetGame(); // Reset current game state after import
           toast({ title: "Data Imported", description: "Your league data has been successfully restored." });
         } else {
           throw new Error("Invalid backup file format");
@@ -727,6 +754,7 @@ export function Game() {
                         unassignedPlayers={unassignedPlayers}
                         onAssignPlayer={handleAssignPlayer}
                         onConfirmDraft={handleConfirmManualDraft}
+                        onCancelDraft={handleCancelDraft}
                     />
                  )}
                  
@@ -747,6 +775,7 @@ export function Game() {
                   onDraftTeams={handleDraftTeams}
                   onRecordResult={handleRecordResult}
                   onResetGame={handleResetGame}
+                  onCancelDraft={handleCancelDraft}
                   gamePhase={gamePhase}
                   playersInCount={playersIn.length}
                   unassignedCount={unassignedPlayers.length}
@@ -869,5 +898,7 @@ export function Game() {
     </>
   );
 }
+
+    
 
     

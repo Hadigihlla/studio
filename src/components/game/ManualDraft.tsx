@@ -13,13 +13,15 @@ interface ManualDraftProps {
     unassignedPlayers: (Player | GuestPlayer)[];
     onAssignPlayer: (playerId: string, team: 'teamA' | 'teamB' | null) => void;
     onConfirmDraft: () => void;
+    onCancelDraft: () => void;
 }
 
 export function ManualDraft({
     manualTeams,
     unassignedPlayers,
     onAssignPlayer,
-    onConfirmDraft
+    onConfirmDraft,
+    onCancelDraft,
 }: ManualDraftProps) {
   return (
     <Card>
@@ -62,10 +64,13 @@ export function ManualDraft({
               />
            ) : <p className="text-muted-foreground text-center p-4">All players have been assigned.</p>}
         </div>
-        <div className="mt-6 flex justify-end">
+        <div className="mt-6 flex justify-end gap-2">
+          <Button onClick={onCancelDraft} variant="outline">Cancel</Button>
           <Button onClick={onConfirmDraft}>Confirm Teams</Button>
         </div>
       </CardContent>
     </Card>
   );
 }
+
+    
