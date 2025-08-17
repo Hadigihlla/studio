@@ -56,7 +56,7 @@ export function PlayerDialog({ isOpen, onOpenChange, onSave, player }: PlayerDia
     defaultValues: {
       name: "",
       points: 0,
-      photoURL: undefined,
+      photoURL: "",
       matchesPlayed: 0,
       wins: 0,
       draws: 0,
@@ -70,22 +70,22 @@ export function PlayerDialog({ isOpen, onOpenChange, onSave, player }: PlayerDia
     if (isOpen) {
       if (player) {
         form.reset({
-          name: player.name,
-          points: player.points,
-          photoURL: player.photoURL,
-          matchesPlayed: player.matchesPlayed,
-          wins: player.wins,
-          draws: player.draws,
-          losses: player.losses,
-          lateCount: player.lateCount,
-          noShowCount: player.noShowCount,
+          name: player.name || "",
+          points: player.points || 0,
+          photoURL: player.photoURL || "",
+          matchesPlayed: player.matchesPlayed || 0,
+          wins: player.wins || 0,
+          draws: player.draws || 0,
+          losses: player.losses || 0,
+          lateCount: player.lateCount || 0,
+          noShowCount: player.noShowCount || 0,
         })
         setPreview(player.photoURL)
       } else {
         form.reset({
           name: "",
           points: 10, // Default points for new player
-          photoURL: undefined,
+          photoURL: "",
           matchesPlayed: 0,
           wins: 0,
           draws: 0,
