@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
@@ -25,11 +26,15 @@ import { initialPlayers } from "@/lib/initial-players";
 import { cn } from "@/lib/utils";
 import { PlusOneManager } from "@/components/game/PlusOneManager";
 import { Toaster } from "@/components/ui/toaster";
+import { SeasonProgress } from "./SeasonProgress";
 
 const MAX_PLAYERS_IN = 14;
 const MAX_GUESTS = 4;
 
 const defaultSettings: Settings = {
+  leagueName: 'Hirafus League',
+  location: 'City Arena',
+  totalMatches: 38,
   latePenalty: 2,
   noShowPenalty: 3,
 };
@@ -127,7 +132,11 @@ export function Game() {
       
       if(savedGuests) setGuestPlayers(JSON.parse(savedGuests));
       if (savedMatches) setMatchHistory(JSON.parse(savedMatches));
-      if (savedSettings) setSettings(JSON.parse(savedSettings));
+      if (savedSettings) {
+        // Ensure settings from older versions are compatible
+        const parsedSettings = JSON.parse(savedSettings);
+        setSettings({...defaultSettings, ...parsedSettings});
+      }
 
       // Restore in-progress game
       if (savedGamePhase) setGamePhase(JSON.parse(savedGamePhase));
@@ -314,7 +323,7 @@ export function Game() {
   
   const handleSaveSettings = (newSettings: Settings) => {
     setSettings(newSettings);
-    toast({ title: "Settings Saved", description: "Penalty points have been updated." });
+    toast({ title: "Settings Saved", description: "League settings have been updated." });
     setIsSettingsDialogOpen(false);
   };
 
@@ -741,7 +750,7 @@ export function Game() {
       <Toaster />
       <main className="container mx-auto p-2 md:p-8 relative no-print">
         {winner && <Confetti />}
-        <Header />
+        <Header leagueName={settings.leagueName} />
         
         <Tabs defaultValue="match-day">
           <TabsList className="grid w-full grid-cols-3 mb-6">
@@ -830,7 +839,8 @@ export function Game() {
                 )}
               </div>
               <div className="space-y-6">
-                <UpcomingGame />
+                <UpcomingGame location={settings.location}/>
+                <SeasonProgress current={matchHistory.length} total={settings.totalMatches} />
                 <GameControls 
                   onDraftTeams={handleDraftTeams}
                   onRecordResult={handleRecordResult}
@@ -871,6 +881,7 @@ export function Game() {
               onExportData={handleExportData}
               onImportData={handleImportData}
               onResetLeague={handleResetLeagueData}
+              leagueName={settings.leagueName}
             />
           </TabsContent>
 
@@ -895,7 +906,7 @@ export function Game() {
         <div className="printable-area" ref={printResultRef}>
            <Card className="printable-content">
             <CardHeader className="printable-header text-center">
-                <CardTitle className="printable-title text-3xl font-headline">Hirafus League</CardTitle>
+                <CardTitle className="printable-title text-3xl font-headline">{settings.leagueName}</CardTitle>
                 <CardDescription className="printable-subtitle text-lg">
                     {format(new Date(matchToPrint.date), "eeee, MMMM do, yyyy")}
                 </CardDescription>
@@ -961,7 +972,7 @@ export function Game() {
         <div className="printable-area" ref={printTeamsRef}>
            <Card className="printable-content">
             <CardHeader className="printable-header text-center">
-                <CardTitle className="printable-title text-3xl font-headline">Hirafus League</CardTitle>
+                <CardTitle className="printable-title text-3xl font-headline">{settings.leagueName}</CardTitle>
                 <CardDescription className="printable-subtitle text-lg">
                     Team Draft - {format(new Date(), "eeee, MMMM do, yyyy")}
                 </CardDescription>

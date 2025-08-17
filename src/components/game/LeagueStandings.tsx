@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useRef } from "react";
@@ -39,6 +40,7 @@ import { Label } from "../ui/label";
 
 interface LeagueStandingsProps {
   players: Player[];
+  leagueName: string;
   onEditPlayer: (player: Player) => void;
   onDeletePlayer: (playerId: string) => void;
   onAddPlayer: () => void;
@@ -50,6 +52,7 @@ interface LeagueStandingsProps {
 
 export function LeagueStandings({ 
     players, 
+    leagueName,
     onEditPlayer, 
     onDeletePlayer, 
     onAddPlayer, 
@@ -117,7 +120,7 @@ export function LeagueStandings({
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={onOpenSettings}>
-                            <Settings className="mr-2"/> Penalty Settings
+                            <Settings className="mr-2"/> League Settings
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={handleDownloadStandings}>
@@ -256,7 +259,7 @@ export function LeagueStandings({
       <div className="printable-area" ref={printRef}>
         <Card className="printable-content">
             <CardHeader className="printable-header text-center">
-                <CardTitle className="printable-title text-3xl font-headline">Hirafus League</CardTitle>
+                <CardTitle className="printable-title text-3xl font-headline">{leagueName}</CardTitle>
                 <CardDescription className="printable-subtitle text-lg">League Standings</CardDescription>
             </CardHeader>
             <CardContent className="p-6">

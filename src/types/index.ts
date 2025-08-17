@@ -54,6 +54,9 @@ export interface Match {
 }
 
 export interface Settings {
+  leagueName: string;
+  location: string;
+  totalMatches: number;
   latePenalty: number;
   noShowPenalty: number;
 }
