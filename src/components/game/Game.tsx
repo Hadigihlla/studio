@@ -312,8 +312,8 @@ export function Game() {
 
   const handleDraftTeams = (method: "points" | "manual") => {
     if (method === "manual") {
-      if (playersIn.length < 2) {
-          toast({ variant: "destructive", title: "Not Enough Players", description: "Need at least 2 players to draft teams manually." });
+      if (playersIn.length !== 14) {
+          toast({ variant: "destructive", title: "Incorrect Player Count", description: "Manual draft requires exactly 14 players to be 'In' for a 7 vs 7 match." });
           return;
       }
       setManualTeams({ teamA: [], teamB: [] });
@@ -372,7 +372,15 @@ export function Game() {
   };
 
   const handleConfirmManualDraft = () => {
-    // Prevent confirming if not all "in" players are assigned
+    if (manualTeams.teamA.length !== 7 || manualTeams.teamB.length !== 7) {
+      toast({
+        variant: 'destructive',
+        title: "Incorrect Team Size",
+        description: `Both Team A and Team B must have exactly 7 players. Please adjust the teams.`,
+      });
+      return;
+    }
+
     if (unassignedPlayers.length > 0) {
       toast({
         variant: 'destructive',
@@ -384,7 +392,7 @@ export function Game() {
 
     setTeams(manualTeams);
     setGamePhase('teams');
-    toast({ title: "Manual Teams Confirmed!", description: "The teams you selected have been locked in." });
+    toast({ title: "Manual Teams Confirmed!", description: "The 7 vs 7 teams you selected are locked in." });
   }
 
   const updatePlayerStats = (playersToUpdate: (Player | GuestPlayer)[], result: 'W' | 'D' | 'L', penaltiesForMatch: Record<string, Penalty>) => {
@@ -558,7 +566,8 @@ export function Game() {
 
         const newForm: ('W' | 'D' | 'L')[] = [];
         // Iterate matches from newest to oldest to build the form chronologically
-        [...remainingMatches].forEach(match => {
+        [...remainingMatches].reverse().forEach(match => {
+            if (newForm.length >= 5) return;
             let result: 'W' | 'D' | 'L' | null = null;
             if (match.teams.teamA.some(p => p.id === player.id)) {
                 result = match.result === 'A' ? 'W' : match.result === 'B' ? 'L' : 'D';
@@ -568,7 +577,7 @@ export function Game() {
             if(result) newForm.push(result);
         });
         // The form should be the most recent 5
-        player.form = newForm.slice(0, 5);
+        player.form = newForm.reverse();
     });
 
     setPlayers(Array.from(playerMap.values()));
