@@ -4,7 +4,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Users, Swords, Trophy, RefreshCw } from "lucide-react";
+import { Users, Swords, Trophy, RefreshCw, Download } from "lucide-react";
 import { ScoreInput } from "./ScoreInput";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 
@@ -13,6 +13,7 @@ interface GameControlsProps {
   onRecordResult: () => void;
   onResetGame: () => void;
   onCancelDraft: () => void;
+  onDownloadTeams: () => void;
   gamePhase: "availability" | "teams" | "results" | "manual-draft";
   playersInCount: number;
   unassignedCount: number; // For manual draft
@@ -25,6 +26,7 @@ export function GameControls({
   onRecordResult,
   onResetGame,
   onCancelDraft,
+  onDownloadTeams,
   gamePhase,
   playersInCount,
   unassignedCount,
@@ -94,6 +96,10 @@ export function GameControls({
               <Trophy className="mr-2 h-4 w-4" />
               Record Final Score
             </Button>
+            <Button onClick={onDownloadTeams} className="w-full" variant="secondary">
+                <Download className="mr-2 h-4 w-4" />
+                Download Teams
+            </Button>
             <Button onClick={onCancelDraft} className="w-full" variant="outline">
                 <RefreshCw className="mr-2 h-4 w-4" />
                 Cancel Draft
@@ -113,5 +119,3 @@ export function GameControls({
     </Card>
   );
 }
-
-    

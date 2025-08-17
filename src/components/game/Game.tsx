@@ -49,8 +49,10 @@ export function Game() {
   const [scores, setScores] = useState<{ teamA: number; teamB: number }>({ teamA: 0, teamB: 0 });
   const [isLoading, setIsLoading] = useState(true);
   const [matchToPrint, setMatchToPrint] = useState<Match | null>(null);
+  const [teamsToPrint, setTeamsToPrint] = useState<Team | null>(null);
   const [settings, setSettings] = useState<Settings>(defaultSettings);
   const printResultRef = useRef<HTMLDivElement>(null);
+  const printTeamsRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
   const showToast = useCallback((props: Parameters<typeof toast>[0]) => {
@@ -187,6 +189,22 @@ export function Game() {
         });
     }
   }, [matchToPrint]);
+  
+  useEffect(() => {
+    if (teamsToPrint && printTeamsRef.current) {
+      html2canvas(printTeamsRef.current, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#020817'
+      }).then(canvas => {
+        const link = document.createElement('a');
+        link.download = `hirafus-league-teams-${format(new Date(), 'yyyy-MM-dd')}.jpg`;
+        link.href = canvas.toDataURL('image/jpeg', 0.9);
+        link.click();
+        setTeamsToPrint(null); // Reset after download
+      });
+    }
+  }, [teamsToPrint]);
   
   const handleSetAvailability = (playerId: string, newStatus: PlayerStatus) => {
     if (gamePhase !== 'availability') {
@@ -603,6 +621,12 @@ export function Game() {
   const handleDownloadMatchResult = (match: Match) => {
     setMatchToPrint(match);
   };
+  
+  const handleDownloadTeams = () => {
+    if (teams) {
+      setTeamsToPrint(teams);
+    }
+  };
 
   const handleExportData = () => {
     try {
@@ -781,6 +805,7 @@ export function Game() {
                   unassignedCount={unassignedPlayers.length}
                   scores={scores}
                   setScores={setScores}
+                  onDownloadTeams={handleDownloadTeams}
                 />
                 {gamePhase === 'results' && (
                   <Card>
@@ -895,10 +920,34 @@ export function Game() {
         </Card>
         </div>
       )}
+       {teamsToPrint && (
+        <div className="printable-area" ref={printTeamsRef}>
+           <Card className="printable-content">
+            <CardHeader className="printable-header text-center">
+                <CardTitle className="printable-title text-3xl font-headline">Hirafus League</CardTitle>
+                <CardDescription className="printable-subtitle text-lg">
+                    Team Draft - {format(new Date(), "eeee, MMMM do, yyyy")}
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-6">
+                <div className="grid grid-cols-2 gap-6">
+                    <div>
+                        <h4 className="font-semibold flex items-center gap-2 mb-4 text-blue-400 text-xl"><Shield/>Team A</h4>
+                        <ul className="space-y-2">
+                            {teamsToPrint.teamA.map(p => <li key={`pta-${p.id}`} className="text-lg">{p.name}{p.isGuest && ' (Guest)'}</li>)}
+                        </ul>
+                    </div>
+                     <div>
+                        <h4 className="font-semibold flex items-center gap-2 mb-4 text-red-400 text-xl"><Shield/>Team B</h4>
+                        <ul className="space-y-2">
+                             {teamsToPrint.teamB.map(p => <li key={`ptb-${p.id}`} className="text-lg">{p.name}{p.isGuest && ' (Guest)'}</li>)}
+                        </ul>
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
+        </div>
+      )}
     </>
   );
 }
-
-    
-
-    
