@@ -272,9 +272,18 @@ export function Game() {
     setIsPlayerDialogOpen(true);
   };
 
-  const handleSavePlayer = (playerData: Omit<Player, 'id' | 'status' | 'matchesPlayed' | 'wins' | 'draws' | 'losses' | 'form' | 'waitingTimestamp'> & { id?: string }) => {
+  const handleSavePlayer = (playerData: Omit<Player, 'status' | 'form' | 'waitingTimestamp'>) => {
     if (playerData.id) { // Editing existing player
-      setPlayers(prev => prev.map(p => p.id === playerData.id ? { ...p, name: playerData.name, points: playerData.points, photoURL: playerData.photoURL } : p));
+      setPlayers(prev => prev.map(p => p.id === playerData.id ? { 
+        ...p, 
+        name: playerData.name,
+        photoURL: playerData.photoURL,
+        points: playerData.points,
+        matchesPlayed: playerData.matchesPlayed,
+        wins: playerData.wins,
+        draws: playerData.draws,
+        losses: playerData.losses,
+      } : p));
       toast({ title: "Player Updated", description: `${playerData.name}'s details have been saved.` });
     } else { // Adding new player
       const newPlayer: Player = {
@@ -283,10 +292,10 @@ export function Game() {
         points: playerData.points,
         photoURL: playerData.photoURL,
         status: 'undecided',
-        matchesPlayed: 0,
-        wins: 0,
-        draws: 0,
-        losses: 0,
+        matchesPlayed: playerData.matchesPlayed,
+        wins: playerData.wins,
+        draws: playerData.draws,
+        losses: playerData.losses,
         form: [],
         waitingTimestamp: null,
       };

@@ -31,16 +31,18 @@ import { User, Upload } from "lucide-react"
 interface PlayerDialogProps {
   isOpen: boolean
   onOpenChange: (isOpen: boolean) => void
-  onSave: (playerData: Omit<Player, 'id' | 'status' | 'matchesPlayed' | 'wins' | 'draws' | 'losses' | 'form' | 'waitingTimestamp'> & { id?: string }) => void
+  onSave: (playerData: Omit<Player, 'status' | 'form' | 'waitingTimestamp'>) => void
   player: Player | null
 }
 
 const formSchema = z.object({
-  name: z.string().min(2, {
-    message: "Player name must be at least 2 characters.",
-  }),
+  name: z.string().min(2, { message: "Player name must be at least 2 characters." }),
   points: z.coerce.number().int(),
   photoURL: z.string().optional(),
+  matchesPlayed: z.coerce.number().int().min(0),
+  wins: z.coerce.number().int().min(0),
+  draws: z.coerce.number().int().min(0),
+  losses: z.coerce.number().int().min(0),
 })
 
 export function PlayerDialog({ isOpen, onOpenChange, onSave, player }: PlayerDialogProps) {
@@ -53,6 +55,10 @@ export function PlayerDialog({ isOpen, onOpenChange, onSave, player }: PlayerDia
       name: "",
       points: 0,
       photoURL: undefined,
+      matchesPlayed: 0,
+      wins: 0,
+      draws: 0,
+      losses: 0,
     },
   })
   
@@ -63,6 +69,10 @@ export function PlayerDialog({ isOpen, onOpenChange, onSave, player }: PlayerDia
           name: player.name,
           points: player.points,
           photoURL: player.photoURL,
+          matchesPlayed: player.matchesPlayed,
+          wins: player.wins,
+          draws: player.draws,
+          losses: player.losses,
         })
         setPreview(player.photoURL)
       } else {
@@ -70,6 +80,10 @@ export function PlayerDialog({ isOpen, onOpenChange, onSave, player }: PlayerDia
           name: "",
           points: 10, // Default points for new player
           photoURL: undefined,
+          matchesPlayed: 0,
+          wins: 0,
+          draws: 0,
+          losses: 0,
         })
         setPreview(undefined);
       }
@@ -90,7 +104,7 @@ export function PlayerDialog({ isOpen, onOpenChange, onSave, player }: PlayerDia
   };
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    onSave({ ...values, id: player?.id });
+    onSave({ ...values, id: player?.id ?? '' });
   }
 
   return (
@@ -150,6 +164,62 @@ export function PlayerDialog({ isOpen, onOpenChange, onSave, player }: PlayerDia
                 </FormItem>
               )}
             />
+            <div className="grid grid-cols-2 gap-4">
+               <FormField
+                  control={form.control}
+                  name="matchesPlayed"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>MP</FormLabel>
+                      <FormControl>
+                        <Input type="number" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                 <FormField
+                  control={form.control}
+                  name="wins"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Wins</FormLabel>
+                      <FormControl>
+                        <Input type="number" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+            </div>
+             <div className="grid grid-cols-2 gap-4">
+               <FormField
+                  control={form.control}
+                  name="draws"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Draws</FormLabel>
+                      <FormControl>
+                        <Input type="number" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                 <FormField
+                  control={form.control}
+                  name="losses"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Losses</FormLabel>
+                      <FormControl>
+                        <Input type="number" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+            </div>
             <DialogFooter>
               <Button type="submit">Save Player</Button>
             </DialogFooter>
