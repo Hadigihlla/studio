@@ -283,7 +283,7 @@ export function LeagueStandings({
                             <TableCell className="text-center font-mono text-base">{player.losses}</TableCell>
                             <TableCell className="text-center font-mono text-base text-orange-400">{player.latePenalties || 0}</TableCell>
                             <TableCell className="text-center font-mono text-base text-red-500">{player.noShowPenalties || 0}</TableCell>
-                            <TableCell className="text-center font-mono font-bold text-lg text-primary">
+                            <TableCell className="text-center font-mono font-bold text-lg printable-points">
                                 {player.points}
                             </TableCell>
                         </TableRow>
