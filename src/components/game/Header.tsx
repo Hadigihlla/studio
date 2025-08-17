@@ -13,9 +13,6 @@ export function Header({ leagueName }: { leagueName: string }) {
        <p className="mt-2 text-base md:text-xl font-semibold text-muted-foreground">
         {format(new Date(), "eeee, MMMM do, yyyy")}
       </p>
-      <p className="mt-1 text-sm md:text-lg text-muted-foreground">
-        Automated Team Draft & Leaderboard
-      </p>
     </header>
   );
 }
