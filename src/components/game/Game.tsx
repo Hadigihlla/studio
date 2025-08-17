@@ -685,6 +685,42 @@ export function Game() {
     };
     reader.readAsText(file);
   };
+
+  const handleResetLeagueData = () => {
+    try {
+        // Clear all relevant local storage items
+        localStorage.removeItem("players");
+        localStorage.removeItem("guestPlayers");
+        localStorage.removeItem("matchHistory");
+        localStorage.removeItem("settings");
+        localStorage.removeItem("gamePhase");
+        localStorage.removeItem("teams");
+        localStorage.removeItem("scores");
+        localStorage.removeItem("penalties");
+
+        // Reset state to initial values
+        const playersWithIds = initialPlayers.map((p, index) => ({...p, id: `p${index + 1}`}));
+        setPlayers(playersWithIds);
+        setGuestPlayers([]);
+        setMatchHistory([]);
+        setSettings(defaultSettings);
+        
+        // Reset current game state
+        handleResetGame();
+
+        toast({
+            title: "League Data Reset",
+            description: "All data has been cleared and the league has been reset to its initial state."
+        });
+    } catch (error) {
+        console.error("Failed to reset league data", error);
+        toast({
+            variant: "destructive",
+            title: "Reset Failed",
+            description: "Could not clear all league data."
+        });
+    }
+  };
   
   if (isLoading) {
     return (
@@ -834,6 +870,7 @@ export function Game() {
               onOpenSettings={() => setIsSettingsDialogOpen(true)}
               onExportData={handleExportData}
               onImportData={handleImportData}
+              onResetLeague={handleResetLeagueData}
             />
           </TabsContent>
 

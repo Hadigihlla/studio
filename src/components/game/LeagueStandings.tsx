@@ -13,7 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash, MoreVertical, Plus, Trophy, Download, Settings, Upload, FileDown } from "lucide-react";
+import { Edit, Trash, MoreVertical, Plus, Trophy, Download, Settings, Upload, FileDown, RefreshCcw } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -45,6 +45,7 @@ interface LeagueStandingsProps {
   onOpenSettings: () => void;
   onExportData: () => void;
   onImportData: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onResetLeague: () => void;
 }
 
 export function LeagueStandings({ 
@@ -54,7 +55,8 @@ export function LeagueStandings({
     onAddPlayer, 
     onOpenSettings,
     onExportData,
-    onImportData
+    onImportData,
+    onResetLeague
 }: LeagueStandingsProps) {
   const printRef = useRef<HTMLDivElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
@@ -119,15 +121,35 @@ export function LeagueStandings({
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={handleDownloadStandings}>
-                            <Download className="mr-2"/> Download Standings Image
+                            <Download className="mr-2"/> Download Standings
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={onExportData}>
-                            <FileDown className="mr-2"/> Export All Data
+                            <FileDown className="mr-2"/> Export Data
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={handleImportClick}>
                            <Upload className="mr-2"/> Import Data
                         </DropdownMenuItem>
+                         <DropdownMenuSeparator />
+                         <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:text-destructive">
+                                    <RefreshCcw className="mr-2" /> Reset League Data
+                                </DropdownMenuItem>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                <AlertDialogTitle>Reset Entire League?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    This action cannot be undone. This will permanently delete all players, matches, and settings, resetting the league to its original state.
+                                </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={onResetLeague} className="bg-destructive hover:bg-destructive/90">Reset League</AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
                     </DropdownMenuContent>
                 </DropdownMenu>
                  <input
