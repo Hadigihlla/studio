@@ -708,7 +708,18 @@ export function Game() {
         localStorage.removeItem("penalties");
 
         // Reset state to initial values
-        const playersWithIds = initialPlayers.map((p, index) => ({...p, id: `p${index + 1}`}));
+        const playersWithIds = initialPlayers.map((p, index) => ({
+            ...p,
+            id: `p${index + 1}`,
+            points: 0,
+            matchesPlayed: 0,
+            wins: 0,
+            draws: 0,
+            losses: 0,
+            lateCount: 0,
+            noShowCount: 0,
+            form: [],
+        }));
         setPlayers(playersWithIds);
         setGuestPlayers([]);
         setMatchHistory([]);
