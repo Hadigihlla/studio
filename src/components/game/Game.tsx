@@ -324,7 +324,7 @@ export function Game() {
 
     // Points-based draft
     if (playersIn.length !== 14) {
-      toast({ variant: "destructive", title: "Incorrect Player Count", description: "Point-based draft requires exactly 14 players to be 'In'." });
+      toast({ variant: "destructive", title: "Incorrect Player Count", description: "Point-based draft requires exactly 14 players to be 'In' for a 7 vs 7 match." });
       return;
     }
     
@@ -333,24 +333,19 @@ export function Game() {
     const teamB: (Player | GuestPlayer)[] = [];
     
     // Serpent/snake draft logic to ensure balanced teams of 7
-    let isTeamATurn = true;
-    const picks = [];
-
-    for (let i = 0; i < rankedPlayersIn.length; i++) {
-        picks.push(rankedPlayersIn[i]);
-    }
+    const picks = [...rankedPlayersIn];
 
     // Distribute players 1-2-2-2-2-2-2-1
-    teamA.push(picks.shift()!);
-    teamB.push(picks.pop()!);
+    teamA.push(picks.shift()!); // 1st pick -> Team A
+    teamB.push(picks.pop()!);   // Last pick -> Team B
 
     while(picks.length > 0) {
-        teamB.push(picks.shift()!);
-        teamA.push(picks.pop()!);
+        teamB.push(picks.shift()!); // Next highest -> Team B
+        teamA.push(picks.pop()!);   // Next lowest -> Team A
         
         if (picks.length > 0) {
-            teamA.push(picks.shift()!);
-            teamB.push(picks.pop()!);
+            teamA.push(picks.shift()!); // Next highest -> Team A
+            teamB.push(picks.pop()!);   // Next lowest -> Team B
         }
     }
 
@@ -876,7 +871,3 @@ export function Game() {
     </>
   );
 }
-
-    
-
-    
