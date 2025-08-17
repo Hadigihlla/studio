@@ -260,7 +260,10 @@ export function LeagueStandings({
                         >
                             <TableCell className="font-medium text-center">
                                 <div className="flex justify-center items-center h-full">
-                                    <div className="flex items-center justify-center h-7 w-7 rounded-full font-mono font-bold">
+                                    <div className={cn(
+                                        "flex items-center justify-center h-7 w-7 rounded-full font-mono font-bold",
+                                        index < 7 && "bg-green-500/20 text-green-300"
+                                      )}>
                                         {index + 1}
                                     </div>
                                 </div>
@@ -280,7 +283,7 @@ export function LeagueStandings({
                             <TableCell className="text-center font-mono text-base">{player.losses}</TableCell>
                             <TableCell className="text-center font-mono text-base text-orange-400">{player.latePenalties || 0}</TableCell>
                             <TableCell className="text-center font-mono text-base text-red-500">{player.noShowPenalties || 0}</TableCell>
-                            <TableCell className="text-center font-mono font-bold text-lg">
+                            <TableCell className="text-center font-mono font-bold text-lg text-primary">
                                 {player.points}
                             </TableCell>
                         </TableRow>
