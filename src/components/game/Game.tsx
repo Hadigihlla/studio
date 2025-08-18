@@ -432,10 +432,13 @@ export function Game() {
             
             // No-show players don't get points for a Win or Draw
             const shouldGetPoints = !(wasNoShow && (result === 'W' || result === 'D'));
+            
+            // No-show players don't get bonus points
+            const bonusPointsToAdd = wasNoShow ? 0 : bonusPoints;
 
             return {
                 ...p,
-                points: p.points + (shouldGetPoints ? pointsGained : 0) + bonusPoints,
+                points: p.points + (shouldGetPoints ? pointsGained : 0) + bonusPointsToAdd,
                 matchesPlayed: p.matchesPlayed + 1,
                 wins: p.wins + (result === 'W' ? 1 : 0),
                 draws: p.draws + (result === 'D' ? 1 : 0),
@@ -485,12 +488,12 @@ export function Game() {
     let bonusTeamB = 0;
     let bonusMessage = "";
 
-    if (teamANoShows > teamBNoShows) {
+    if (teamBNoShows > teamANoShows) { // Team A played with fewer players
         bonusTeamA = settings.bonusPoint;
-        bonusMessage = ` Team A gets +${settings.bonusPoint} bonus point for playing with fewer players.`;
-    } else if (teamBNoShows > teamANoShows) {
+        bonusMessage = ` Team A gets +${settings.bonusPoint} bonus point for the less player team.`;
+    } else if (teamANoShows > teamBNoShows) { // Team B played with fewer players
         bonusTeamB = settings.bonusPoint;
-        bonusMessage = ` Team B gets +${settings.bonusPoint} bonus point for playing with fewer players.`;
+        bonusMessage = ` Team B gets +${settings.bonusPoint} bonus point for the less player team.`;
     }
 
     if (scores.teamA > scores.teamB) {
@@ -586,9 +589,9 @@ export function Game() {
     const teamBNoShows = matchToDelete.teams.teamB.filter(p => matchToDelete.penalties?.[p.id] === 'no-show').length;
     let bonusTeamA = 0;
     let bonusTeamB = 0;
-    if (teamANoShows > teamBNoShows) {
+    if (teamBNoShows > teamANoShows) {
         bonusTeamA = settings.bonusPoint;
-    } else if (teamBNoShows > teamANoShows) {
+    } else if (teamANoShows > teamBNoShows) {
         bonusTeamB = settings.bonusPoint;
     }
 
@@ -635,8 +638,10 @@ export function Game() {
           player.points -= pointsToRevert;
         }
         
-        // Revert bonus points
-        player.points -= bonusPointsReverted;
+        // Revert bonus points, accounting for no-show
+        if (!wasNoShow) {
+            player.points -= bonusPointsReverted;
+        }
       }
     });
 
@@ -875,7 +880,7 @@ export function Game() {
                     <ManualDraft
                         manualTeams={manualTeams}
                         unassignedPlayers={unassignedPlayers}
-                        onAssignPlayer={handleAssignPlayer}
+                        onAssignPlayer={onAssignPlayer}
                         onConfirmDraft={handleConfirmManualDraft}
                         onCancelDraft={handleCancelDraft}
                     />
@@ -1054,5 +1059,4 @@ export function Game() {
   );
 }
 
-    
     
