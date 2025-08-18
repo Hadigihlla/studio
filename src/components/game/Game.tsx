@@ -697,8 +697,7 @@ export function Game() {
 
   const handleResetLeagueData = () => {
     try {
-        // Clear all relevant local storage items
-        localStorage.removeItem("players");
+        // Clear all relevant local storage items except players
         localStorage.removeItem("guestPlayers");
         localStorage.removeItem("matchHistory");
         localStorage.removeItem("settings");
@@ -707,20 +706,23 @@ export function Game() {
         localStorage.removeItem("scores");
         localStorage.removeItem("penalties");
 
-        // Reset state to initial values
-        const playersWithIds = initialPlayers.map((p, index) => ({
-            ...p,
-            id: `p${index + 1}`,
-            points: 0,
-            matchesPlayed: 0,
-            wins: 0,
-            draws: 0,
-            losses: 0,
-            lateCount: 0,
-            noShowCount: 0,
-            form: [],
-        }));
-        setPlayers(playersWithIds);
+        // Reset all player stats to 0, but keep the players
+        setPlayers(prevPlayers => 
+            prevPlayers.map(player => ({
+                ...player,
+                points: 0,
+                matchesPlayed: 0,
+                wins: 0,
+                draws: 0,
+                losses: 0,
+                lateCount: 0,
+                noShowCount: 0,
+                form: [],
+                status: 'undecided',
+                waitingTimestamp: null,
+            }))
+        );
+
         setGuestPlayers([]);
         setMatchHistory([]);
         setSettings(defaultSettings);
@@ -729,8 +731,8 @@ export function Game() {
         handleResetGame();
 
         toast({
-            title: "League Data Reset",
-            description: "All data has been cleared and the league has been reset to its initial state."
+            title: "League Stats Reset",
+            description: "All player stats and match history have been cleared for a new season."
         });
     } catch (error) {
         console.error("Failed to reset league data", error);
