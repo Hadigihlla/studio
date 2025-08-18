@@ -487,10 +487,10 @@ export function Game() {
 
     if (teamANoShows > teamBNoShows) { // Team A played with fewer players
         bonusTeamA = settings.bonusPoint;
-        bonusMessage = ` Team A gets +${settings.bonusPoint} bonus point for the less player team.`;
+        bonusMessage = ` Team A gets +${settings.bonusPoint} bonus point for playing with fewer players.`;
     } else if (teamBNoShows > teamANoShows) { // Team B played with fewer players
         bonusTeamB = settings.bonusPoint;
-        bonusMessage = ` Team B gets +${settings.bonusPoint} bonus point for the less player team.`;
+        bonusMessage = ` Team B gets +${settings.bonusPoint} bonus point for playing with fewer players.`;
     }
 
     if (scores.teamA > scores.teamB) {
@@ -717,7 +717,21 @@ export function Game() {
           setGuestPlayers(data.guestPlayers || []);
           setMatchHistory(data.matchHistory);
           setSettings(data.settings);
-          handleResetGame(); // Reset current game state after import
+          
+          // Reset current game state to avoid conflicts
+          setTeams(null);
+          setGamePhase("availability");
+          setWinner(null);
+          setPenalties({});
+          setScores({ teamA: 0, teamB: 0 });
+          setGuestPlayers(data.guestPlayers || []);
+          setPlayers(prev => prev.map(p => ({...p, status: 'undecided', waitingTimestamp: null})));
+          
+          localStorage.removeItem('gamePhase');
+          localStorage.removeItem('teams');
+          localStorage.removeItem('scores');
+          localStorage.removeItem('penalties');
+          
           toast({ title: "Data Imported", description: "Your league data has been successfully restored." });
         } else {
           throw new Error("Invalid backup file format");
@@ -766,7 +780,11 @@ export function Game() {
         setSettings(defaultSettings);
         
         // Reset current game state
-        handleResetGame();
+        setTeams(null);
+        setGamePhase("availability");
+        setWinner(null);
+        setPenalties({});
+        setScores({ teamA: 0, teamB: 0 });
 
         toast({
             title: "League Stats Reset",
@@ -1050,6 +1068,8 @@ export function Game() {
     </>
   );
 }
+
+    
 
     
 

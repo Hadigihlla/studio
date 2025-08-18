@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import html2canvas from "html2canvas";
 import type { Player } from "@/types";
 import {
@@ -63,6 +63,7 @@ export function LeagueStandings({
 }: LeagueStandingsProps) {
   const printRef = useRef<HTMLDivElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
+  const [isResetAlertOpen, setIsResetAlertOpen] = useState(false);
 
   const getRankContent = (rank: number) => {
     return (
@@ -95,6 +96,11 @@ export function LeagueStandings({
   const handleImportClick = () => {
     importInputRef.current?.click();
   };
+
+  const confirmResetLeague = () => {
+    onResetLeague();
+    setIsResetAlertOpen(false);
+  }
 
 
   return (
@@ -134,25 +140,9 @@ export function LeagueStandings({
                            <Upload className="mr-2"/> Import Data
                         </DropdownMenuItem>
                          <DropdownMenuSeparator />
-                         <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                                <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:text-destructive">
-                                    <RefreshCcw className="mr-2" /> Reset League Data
-                                </DropdownMenuItem>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                                <AlertDialogHeader>
-                                <AlertDialogTitle>Reset Entire League?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                    This action cannot be undone. This will permanently delete all players, matches, and settings, resetting the league to its original state.
-                                </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={onResetLeague} className="bg-destructive hover:bg-destructive/90">Reset League</AlertDialogAction>
-                                </AlertDialogFooter>
-                            </AlertDialogContent>
-                        </AlertDialog>
+                         <DropdownMenuItem onSelect={() => setIsResetAlertOpen(true)} className="text-destructive focus:text-destructive">
+                            <RefreshCcw className="mr-2" /> Reset League Data
+                        </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
                  <input
@@ -257,6 +247,21 @@ export function LeagueStandings({
               </div>
           </CardContent>
       </Card>
+      
+       <AlertDialog open={isResetAlertOpen} onOpenChange={setIsResetAlertOpen}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                <AlertDialogTitle>Reset Entire League?</AlertDialogTitle>
+                <AlertDialogDescription>
+                    This action cannot be undone. This will permanently delete all match history and reset all player stats to zero. Player profiles will not be deleted.
+                </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={confirmResetLeague} className="bg-destructive hover:bg-destructive/90">Reset League</AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
 
       {/* Printable version */}
       <div className="printable-area" ref={printRef}>
@@ -325,5 +330,7 @@ export function LeagueStandings({
   );
 }
 
+
+    
 
     
