@@ -70,8 +70,8 @@ const PlayerListItem = ({
         // Points from bonus
         const teamANoShows = match.teams.teamA.filter(p => match.penalties?.[p.id] === 'no-show').length;
         const teamBNoShows = match.teams.teamB.filter(p => match.penalties?.[p.id] === 'no-show').length;
-        if (team === 'A' && teamBNoShows > teamANoShows) pointsChange += settings.bonusPoint;
-        if (team === 'B' && teamANoShows > teamBNoShows) pointsChange += settings.bonusPoint;
+        if (team === 'A' && teamANoShows > teamBNoShows) pointsChange += settings.bonusPoint;
+        if (team === 'B' && teamBNoShows > teamANoShows) pointsChange += settings.bonusPoint;
     }
 
     const pointsStr = pointsChange > 0 ? `+${pointsChange}` : `${pointsChange}`;
@@ -190,3 +190,5 @@ export function MatchHistory({ matches, onDeleteMatch, onDownloadMatch, settings
     </Card>
   );
 }
+
+    

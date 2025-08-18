@@ -52,7 +52,7 @@ export function Game() {
   const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false);
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
   const [penalties, setPenalties] = useState<Record<string, Penalty>>({});
-  const [scores, setScores] = useState<{ teamA: number; teamB: number }>({ teamA: 0, teamB: 0 });
+  const [scores, setScores] = useState({ teamA: 0, teamB: 0 });
   const [isLoading, setIsLoading] = useState(true);
   const [matchToPrint, setMatchToPrint] = useState<Match | null>(null);
   const [teamsToPrint, setTeamsToPrint] = useState<Team | null>(null);
@@ -486,11 +486,11 @@ export function Game() {
     let bonusMessage = "";
 
     if (teamANoShows > teamBNoShows) {
-        bonusTeamB = settings.bonusPoint;
-        bonusMessage = ` Team B gets +${settings.bonusPoint} bonus points.`;
-    } else if (teamBNoShows > teamANoShows) {
         bonusTeamA = settings.bonusPoint;
-        bonusMessage = ` Team A gets +${settings.bonusPoint} bonus points.`;
+        bonusMessage = ` Team A gets +${settings.bonusPoint} bonus point for playing with fewer players.`;
+    } else if (teamBNoShows > teamANoShows) {
+        bonusTeamB = settings.bonusPoint;
+        bonusMessage = ` Team B gets +${settings.bonusPoint} bonus point for playing with fewer players.`;
     }
 
     if (scores.teamA > scores.teamB) {
@@ -587,9 +587,9 @@ export function Game() {
     let bonusTeamA = 0;
     let bonusTeamB = 0;
     if (teamANoShows > teamBNoShows) {
-        bonusTeamB = settings.bonusPoint;
-    } else if (teamBNoShows > teamANoShows) {
         bonusTeamA = settings.bonusPoint;
+    } else if (teamBNoShows > teamANoShows) {
+        bonusTeamB = settings.bonusPoint;
     }
 
     // 1. Revert penalty deductions and counts from the deleted match
@@ -1054,4 +1054,5 @@ export function Game() {
   );
 }
 
+    
     

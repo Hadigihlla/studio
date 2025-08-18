@@ -61,3 +61,5 @@ export interface Settings {
   noShowPenalty: number;
   bonusPoint: number;
 }
+
+    
