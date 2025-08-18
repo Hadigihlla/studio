@@ -190,7 +190,10 @@ export function LeagueStandings({
                             </TableRow>
                         )}
                         {players.map((player, index) => (
-                        <TableRow key={player.id}>
+                        <TableRow 
+                            key={player.id}
+                            className={cn(index < 7 && "bg-green-500/10 hover:bg-green-500/20")}
+                        >
                             <TableCell className="font-medium text-center">
                             <div className="flex justify-center items-center h-full">
                                 {getRankContent(index + 1)}
