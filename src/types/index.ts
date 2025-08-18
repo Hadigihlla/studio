@@ -57,6 +57,7 @@ export interface Settings {
   leagueName: string;
   location: string;
   totalMatches: number;
+  drawPoints: number;
   latePenalty: number;
   noShowPenalty: number;
   bonusPoint: number;

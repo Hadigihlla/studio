@@ -57,7 +57,7 @@ const PlayerListItem = ({
         let resultPoints = 0;
         const playerResult = match.result === 'Draw' ? 'D' : (match.result === team ? 'W' : 'L');
         if (playerResult === 'W') resultPoints = 3;
-        else if (playerResult === 'D') resultPoints = 2;
+        else if (playerResult === 'D') resultPoints = settings.drawPoints;
         
         // No-show players don't get points for Win or Draw
         if (!(wasNoShow && (playerResult === 'W' || playerResult === 'D'))) {

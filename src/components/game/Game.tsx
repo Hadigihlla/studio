@@ -35,6 +35,7 @@ const defaultSettings: Settings = {
   leagueName: 'Hirafus League',
   location: 'City Arena',
   totalMatches: 38,
+  drawPoints: 2,
   latePenalty: 2,
   noShowPenalty: 3,
   bonusPoint: 1,
@@ -430,7 +431,7 @@ export function Game() {
             const wasNoShow = penaltiesForMatch[p.id] === 'no-show';
             
             // No-show players don't get points for Win or Draw, or bonus points
-            const pointsGained = wasNoShow ? 0 : (result === 'W' ? 3 : result === 'D' ? 2 : 0);
+            const pointsGained = wasNoShow ? 0 : (result === 'W' ? 3 : result === 'D' ? settings.drawPoints : 0);
             const bonusPointsToAdd = wasNoShow ? 0 : bonusPoints;
 
             return {
@@ -630,7 +631,7 @@ export function Game() {
         const wasNoShow = matchToDelete.penalties?.[playerId] === 'no-show';
         
         if (!wasNoShow) {
-          const pointsToRevert = result === 'W' ? 3 : result === 'D' ? 2 : 0;
+          const pointsToRevert = result === 'W' ? 3 : result === 'D' ? settings.drawPoints : 0;
           player.points -= pointsToRevert;
           player.points -= bonusPointsReverted;
         }

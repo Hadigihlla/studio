@@ -37,6 +37,9 @@ const formSchema = z.object({
   leagueName: z.string().min(1, { message: "League name is required." }),
   location: z.string().min(1, { message: "Location is required." }),
   totalMatches: z.coerce.number().int().min(1, { message: "Must be at least 1 match." }),
+  drawPoints: z.coerce.number().int().min(0, {
+    message: "Points must be a positive number.",
+  }),
   latePenalty: z.coerce.number().int().min(0, {
     message: "Points must be a positive number.",
   }),
@@ -55,6 +58,7 @@ export function SettingsDialog({ isOpen, onOpenChange, onSave, settings }: Setti
       leagueName: 'Hirafus League',
       location: 'City Arena',
       totalMatches: 38,
+      drawPoints: 2,
       latePenalty: 2,
       noShowPenalty: 3,
       bonusPoint: 1,
@@ -67,6 +71,7 @@ export function SettingsDialog({ isOpen, onOpenChange, onSave, settings }: Setti
         leagueName: settings.leagueName,
         location: settings.location,
         totalMatches: settings.totalMatches,
+        drawPoints: settings.drawPoints,
         latePenalty: settings.latePenalty,
         noShowPenalty: settings.noShowPenalty,
         bonusPoint: settings.bonusPoint,
@@ -130,6 +135,34 @@ export function SettingsDialog({ isOpen, onOpenChange, onSave, settings }: Setti
                 )}
               />
             </div>
+             <div className="grid grid-cols-2 gap-4">
+               <FormField
+                  control={form.control}
+                  name="drawPoints"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Draw Points</FormLabel>
+                      <FormControl>
+                        <Input type="number" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                 <FormField
+                  control={form.control}
+                  name="bonusPoint"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>No-Show Bonus Point</FormLabel>
+                      <FormControl>
+                        <Input type="number" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+            </div>
             <div className="grid grid-cols-2 gap-4">
                 <FormField
                 control={form.control}
@@ -158,19 +191,6 @@ export function SettingsDialog({ isOpen, onOpenChange, onSave, settings }: Setti
                 )}
                 />
             </div>
-             <FormField
-              control={form.control}
-              name="bonusPoint"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>No-Show Bonus Point</FormLabel>
-                  <FormControl>
-                    <Input type="number" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
             <DialogFooter>
               <Button type="submit">Save Settings</Button>
             </DialogFooter>
