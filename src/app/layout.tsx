@@ -13,9 +13,8 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: 'Hirafus League',
+  title: 'Gridiron Guru',
   description: 'Weekly Football Team Selections & Leaderboard',
-  manifest: '/manifest.json',
 };
 
 export default function RootLayout({
@@ -26,8 +25,6 @@ export default function RootLayout({
   return (
     <html lang="en" className={`dark ${inter.variable} ${spaceGrotesk.variable}`}>
       <head>
-        <link rel="manifest" href="/manifest.json" />
-        <link rel="apple-touch-icon" href="/icon-192x192.png"></link>
         <meta name="theme-color" content="#020817" />
       </head>
       <body className="font-body antialiased">

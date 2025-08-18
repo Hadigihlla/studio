@@ -1,7 +1,7 @@
 
 "use client";
 
-import type { Match, MatchPlayer, Penalty } from "@/types";
+import type { Match, MatchPlayer, Penalty, Settings } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -22,17 +22,60 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
-import { Calendar, Shield, Users, Trophy, Clock, UserX, Trash, Download } from "lucide-react";
+import { Calendar, Shield, Trophy, Clock, UserX, Trash, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface MatchHistoryProps {
   matches: Match[];
   onDeleteMatch: (matchId: string) => void;
   onDownloadMatch: (match: Match) => void;
+  settings: Settings;
 }
 
-const PlayerListItem = ({ player, penalty }: { player: MatchPlayer, penalty: Penalty }) => {
+const PlayerListItem = ({ 
+    player,
+    team,
+    match,
+    settings 
+}: { 
+    player: MatchPlayer, 
+    team: 'A' | 'B',
+    match: Match,
+    settings: Settings 
+}) => {
     if (!player) return null;
+    const penalty = match.penalties?.[player.id];
+    let pointsChange = 0;
+
+    // Don't calculate for guests
+    if(!player.isGuest) {
+        const wasNoShow = penalty === 'no-show';
+        
+        // Points from result
+        let resultPoints = 0;
+        const playerResult = match.result === 'Draw' ? 'D' : (match.result === team ? 'W' : 'L');
+        if (playerResult === 'W') resultPoints = 3;
+        else if (playerResult === 'D') resultPoints = 2;
+        
+        // No-show players don't get points for Win or Draw
+        if (!(wasNoShow && (playerResult === 'W' || playerResult === 'D'))) {
+            pointsChange += resultPoints;
+        }
+        
+        // Points from penalties
+        if (penalty === 'late') pointsChange -= settings.latePenalty;
+        if (penalty === 'no-show') pointsChange -= settings.noShowPenalty;
+
+        // Points from bonus
+        const teamANoShows = match.teams.teamA.filter(p => match.penalties?.[p.id] === 'no-show').length;
+        const teamBNoShows = match.teams.teamB.filter(p => match.penalties?.[p.id] === 'no-show').length;
+        if (team === 'A' && teamBNoShows > teamANoShows) pointsChange += settings.bonusPoint;
+        if (team === 'B' && teamANoShows > teamBNoShows) pointsChange += settings.bonusPoint;
+    }
+
+    const pointsStr = pointsChange > 0 ? `+${pointsChange}` : `${pointsChange}`;
+
     return (
         <li className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -43,13 +86,24 @@ const PlayerListItem = ({ player, penalty }: { player: MatchPlayer, penalty: Pen
                 {player.name}
                 {player.isGuest && <span className="text-xs text-muted-foreground">(Guest)</span>}
             </div>
-            {penalty === 'late' && <Clock className="w-4 h-4 text-orange-400" />}
-            {penalty === 'no-show' && <UserX className="w-4 h-4 text-red-500" />}
+             <div className="flex items-center gap-2">
+                {penalty === 'late' && <Clock className="w-4 h-4 text-orange-400" />}
+                {penalty === 'no-show' && <UserX className="w-4 h-4 text-red-500" />}
+                {!player.isGuest && (
+                    <span className={cn(
+                        "text-xs font-mono font-semibold",
+                        pointsChange > 0 && "text-green-500",
+                        pointsChange < 0 && "text-red-500"
+                    )}>
+                        ({pointsStr} Pts)
+                    </span>
+                )}
+            </div>
         </li>
     );
 };
 
-export function MatchHistory({ matches, onDeleteMatch, onDownloadMatch }: MatchHistoryProps) {
+export function MatchHistory({ matches, onDeleteMatch, onDownloadMatch, settings }: MatchHistoryProps) {
 
   return (
     <Card>
@@ -92,13 +146,13 @@ export function MatchHistory({ matches, onDeleteMatch, onDownloadMatch }: MatchH
                             <div>
                             <h4 className="font-semibold flex items-center gap-2 mb-2 text-blue-400"><Shield/>Team A</h4>
                             <ul className="space-y-1 text-sm text-muted-foreground">
-                                {match.teams.teamA.map(p => <PlayerListItem key={p.id} player={p} penalty={match.penalties?.[p.id]} />)}
+                                {match.teams.teamA.map(p => <PlayerListItem key={p.id} player={p} team='A' match={match} settings={settings} />)}
                             </ul>
                             </div>
                             <div>
                                 <h4 className="font-semibold flex items-center gap-2 mb-2 text-red-400"><Shield/>Team B</h4>
                             <ul className="space-y-1 text-sm text-muted-foreground">
-                                {match.teams.teamB.map(p => <PlayerListItem key={p.id} player={p} penalty={match.penalties?.[p.id]} />)}
+                                {match.teams.teamB.map(p => <PlayerListItem key={p.id} player={p} team='B' match={match} settings={settings} />)}
                             </ul>
                             </div>
                         </div>

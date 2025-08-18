@@ -52,7 +52,7 @@ export function Game() {
   const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false);
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
   const [penalties, setPenalties] = useState<Record<string, Penalty>>({});
-  const [scores, setScores] = useState<{ teamA: number; teamB: number }>({ teamA: 0, teamB: 0 });
+  const [scores, setScores] useState<{ teamA: number; teamB: number }>({ teamA: 0, teamB: 0 });
   const [isLoading, setIsLoading] = useState(true);
   const [matchToPrint, setMatchToPrint] = useState<Match | null>(null);
   const [teamsToPrint, setTeamsToPrint] = useState<Team | null>(null);
@@ -940,7 +940,7 @@ export function Game() {
           </TabsContent>
 
           <TabsContent value="history">
-            <MatchHistory matches={matchHistory} onDeleteMatch={handleDeleteMatch} onDownloadMatch={handleDownloadMatchResult} />
+            <MatchHistory matches={matchHistory} onDeleteMatch={handleDeleteMatch} onDownloadMatch={handleDownloadMatchResult} settings={settings} />
           </TabsContent>
         </Tabs>
       </main>
