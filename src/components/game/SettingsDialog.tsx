@@ -43,6 +43,9 @@ const formSchema = z.object({
   noShowPenalty: z.coerce.number().int().min(0, {
       message: "Points must be a positive number."
   }),
+  bonusPoint: z.coerce.number().int().min(0, {
+    message: "Points must be a positive number."
+  }),
 })
 
 export function SettingsDialog({ isOpen, onOpenChange, onSave, settings }: SettingsDialogProps) {
@@ -54,6 +57,7 @@ export function SettingsDialog({ isOpen, onOpenChange, onSave, settings }: Setti
       totalMatches: 38,
       latePenalty: 2,
       noShowPenalty: 3,
+      bonusPoint: 1,
     },
   })
   
@@ -65,6 +69,7 @@ export function SettingsDialog({ isOpen, onOpenChange, onSave, settings }: Setti
         totalMatches: settings.totalMatches,
         latePenalty: settings.latePenalty,
         noShowPenalty: settings.noShowPenalty,
+        bonusPoint: settings.bonusPoint,
       })
     }
   }, [settings, isOpen, form])
@@ -153,6 +158,19 @@ export function SettingsDialog({ isOpen, onOpenChange, onSave, settings }: Setti
                 )}
                 />
             </div>
+             <FormField
+              control={form.control}
+              name="bonusPoint"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>No-Show Bonus Point</FormLabel>
+                  <FormControl>
+                    <Input type="number" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <DialogFooter>
               <Button type="submit">Save Settings</Button>
             </DialogFooter>

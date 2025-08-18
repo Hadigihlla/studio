@@ -59,4 +59,5 @@ export interface Settings {
   totalMatches: number;
   latePenalty: number;
   noShowPenalty: number;
+  bonusPoint: number;
 }

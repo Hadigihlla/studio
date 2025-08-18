@@ -37,6 +37,7 @@ const defaultSettings: Settings = {
   totalMatches: 38,
   latePenalty: 2,
   noShowPenalty: 3,
+  bonusPoint: 1,
 };
 
 export function Game() {
@@ -416,7 +417,12 @@ export function Game() {
     toast({ title: "Manual Teams Confirmed!", description: "The 7 vs 7 teams you selected are locked in." });
   }
 
-  const updatePlayerStats = (playersToUpdate: (Player | GuestPlayer)[], result: 'W' | 'D' | 'L', penaltiesForMatch: Record<string, Penalty>) => {
+  const updatePlayerStats = (
+    playersToUpdate: (Player | GuestPlayer)[], 
+    result: 'W' | 'D' | 'L', 
+    penaltiesForMatch: Record<string, Penalty>,
+    bonusPoints: number = 0,
+  ) => {
     const playerIdsToUpdate = new Set(playersToUpdate.map(p => p.id));
     
     setPlayers(prev => prev.map(p => {
@@ -429,7 +435,7 @@ export function Game() {
 
             return {
                 ...p,
-                points: p.points + (shouldGetPoints ? pointsGained : 0),
+                points: p.points + (shouldGetPoints ? pointsGained : 0) + bonusPoints,
                 matchesPlayed: p.matchesPlayed + 1,
                 wins: p.wins + (result === 'W' ? 1 : 0),
                 draws: p.draws + (result === 'D' ? 1 : 0),
@@ -440,6 +446,7 @@ export function Game() {
         return p;
     }));
   };
+
 
   const handleRecordResult = () => {
     if (!teams) return;
@@ -470,18 +477,34 @@ export function Game() {
     const penaltyToastDescription = penaltyMessages.length > 0
         ? " Penalties applied: " + penaltyMessages.join(', ') + '.'
         : "";
+    
+    // Calculate no-shows and bonus points
+    const teamANoShows = teams.teamA.filter(p => penalties[p.id] === 'no-show').length;
+    const teamBNoShows = teams.teamB.filter(p => penalties[p.id] === 'no-show').length;
+    let bonusTeamA = 0;
+    let bonusTeamB = 0;
+    let bonusMessage = "";
+
+    if (teamANoShows > teamBNoShows) {
+        bonusTeamB = settings.bonusPoint;
+        bonusMessage = ` Team B gets +${settings.bonusPoint} bonus points.`;
+    } else if (teamBNoShows > teamANoShows) {
+        bonusTeamA = settings.bonusPoint;
+        bonusMessage = ` Team A gets +${settings.bonusPoint} bonus points.`;
+    }
 
     if (scores.teamA > scores.teamB) {
       result = 'A';
-      updatePlayerStats(teams.teamA, 'W', penalties);
-      updatePlayerStats(teams.teamB, 'L', penalties);
+      updatePlayerStats(teams.teamA, 'W', penalties, bonusTeamA);
+      updatePlayerStats(teams.teamB, 'L', penalties, bonusTeamB);
     } else if (scores.teamB > scores.teamA) {
       result = 'B';
-      updatePlayerStats(teams.teamB, 'W', penalties);
-      updatePlayerStats(teams.teamA, 'L', penalties);
+      updatePlayerStats(teams.teamB, 'W', penalties, bonusTeamB);
+      updatePlayerStats(teams.teamA, 'L', penalties, bonusTeamA);
     } else {
       result = 'Draw';
-      updatePlayerStats([...teams.teamA, ...teams.teamB], 'D', penalties);
+      updatePlayerStats(teams.teamA, 'D', penalties, bonusTeamA);
+      updatePlayerStats(teams.teamB, 'D', penalties, bonusTeamB);
     }
 
     const newMatch: Match = {
@@ -502,7 +525,7 @@ export function Game() {
     setWinner(result);
 
     const resultMessage = result === 'A' ? "Team A wins!" : result === 'B' ? "Team B wins!" : "It's a draw!";
-    toast({ title: "Game Over!", description: resultMessage + penaltyToastDescription });
+    toast({ title: "Game Over!", description: resultMessage + bonusMessage + penaltyToastDescription });
   };
   
   const handleResetGame = () => {
@@ -557,6 +580,17 @@ export function Game() {
       ...matchToDelete.teams.teamA.map(p => p.id),
       ...matchToDelete.teams.teamB.map(p => p.id)
     ];
+    
+    // Calculate bonus points that were awarded in the deleted match
+    const teamANoShows = matchToDelete.teams.teamA.filter(p => matchToDelete.penalties?.[p.id] === 'no-show').length;
+    const teamBNoShows = matchToDelete.teams.teamB.filter(p => matchToDelete.penalties?.[p.id] === 'no-show').length;
+    let bonusTeamA = 0;
+    let bonusTeamB = 0;
+    if (teamANoShows > teamBNoShows) {
+        bonusTeamB = settings.bonusPoint;
+    } else if (teamBNoShows > teamANoShows) {
+        bonusTeamA = settings.bonusPoint;
+    }
 
     // 1. Revert penalty deductions and counts from the deleted match
     Object.entries(matchToDelete.penalties || {}).forEach(([playerId, penalty]) => {
@@ -575,10 +609,14 @@ export function Game() {
       if (!player || player.isGuest) return;
 
       let result: 'W' | 'D' | 'L' | null = null;
+      let bonusPointsReverted = 0;
+
       if (matchToDelete.teams.teamA.some(p => p.id === playerId)) {
         result = matchToDelete.result === 'A' ? 'W' : matchToDelete.result === 'B' ? 'L' : 'D';
+        bonusPointsReverted = bonusTeamA;
       } else if (matchToDelete.teams.teamB.some(p => p.id === playerId)) {
         result = matchToDelete.result === 'B' ? 'W' : matchToDelete.result === 'A' ? 'L' : 'D';
+        bonusPointsReverted = bonusTeamB;
       }
 
       if (result) {
@@ -596,6 +634,9 @@ export function Game() {
           const pointsToRevert = result === 'W' ? 3 : result === 'D' ? 2 : 0;
           player.points -= pointsToRevert;
         }
+        
+        // Revert bonus points
+        player.points -= bonusPointsReverted;
       }
     });
 
