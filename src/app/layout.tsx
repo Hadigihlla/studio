@@ -1,4 +1,3 @@
-import type {Metadata} from 'next';
 import './globals.css';
 import { Inter, Space_Grotesk } from 'next/font/google';
 
@@ -12,11 +11,6 @@ const spaceGrotesk = Space_Grotesk({
   variable: '--font-space-grotesk',
 });
 
-export const metadata: Metadata = {
-  title: 'Gridiron Guru',
-  description: 'Weekly Football Team Selections & Leaderboard',
-};
-
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -25,7 +19,8 @@ export default function RootLayout({
   return (
     <html lang="en" className={`dark ${inter.variable} ${spaceGrotesk.variable}`}>
       <head>
-        <meta name="theme-color" content="#020817" />
+        <title>Gridiron Guru</title>
+        <meta name="description" content="Weekly Football Team Selections & Leaderboard" />
       </head>
       <body className="font-body antialiased">
         {children}
