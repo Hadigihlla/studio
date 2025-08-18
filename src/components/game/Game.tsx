@@ -428,17 +428,14 @@ export function Game() {
     setPlayers(prev => prev.map(p => {
         if (!p.isGuest && playerIdsToUpdate.has(p.id)) {
             const wasNoShow = penaltiesForMatch[p.id] === 'no-show';
-            const pointsGained = result === 'W' ? 3 : result === 'D' ? 2 : 0;
             
-            // No-show players don't get points for a Win or Draw
-            const shouldGetPoints = !(wasNoShow && (result === 'W' || result === 'D'));
-            
-            // No-show players don't get bonus points
+            // No-show players don't get points for Win or Draw, or bonus points
+            const pointsGained = wasNoShow ? 0 : (result === 'W' ? 3 : result === 'D' ? 2 : 0);
             const bonusPointsToAdd = wasNoShow ? 0 : bonusPoints;
 
             return {
                 ...p,
-                points: p.points + (shouldGetPoints ? pointsGained : 0) + bonusPointsToAdd,
+                points: p.points + pointsGained + bonusPointsToAdd,
                 matchesPlayed: p.matchesPlayed + 1,
                 wins: p.wins + (result === 'W' ? 1 : 0),
                 draws: p.draws + (result === 'D' ? 1 : 0),
@@ -631,16 +628,11 @@ export function Game() {
 
         // Revert points, accounting for no-show penalties
         const wasNoShow = matchToDelete.penalties?.[playerId] === 'no-show';
-        const shouldRevertPoints = !(wasNoShow && (result === 'W' || result === 'D'));
-
-        if (shouldRevertPoints) {
+        
+        if (!wasNoShow) {
           const pointsToRevert = result === 'W' ? 3 : result === 'D' ? 2 : 0;
           player.points -= pointsToRevert;
-        }
-        
-        // Revert bonus points, accounting for no-show
-        if (!wasNoShow) {
-            player.points -= bonusPointsReverted;
+          player.points -= bonusPointsReverted;
         }
       }
     });
@@ -880,7 +872,7 @@ export function Game() {
                     <ManualDraft
                         manualTeams={manualTeams}
                         unassignedPlayers={unassignedPlayers}
-                        onAssignPlayer={onAssignPlayer}
+                        onAssignPlayer={handleAssignPlayer}
                         onConfirmDraft={handleConfirmManualDraft}
                         onCancelDraft={handleCancelDraft}
                     />
