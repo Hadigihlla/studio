@@ -69,7 +69,7 @@ export function LeagueStandings({
       <div
         className={cn(
           "flex items-center justify-center h-6 w-6 rounded-full font-mono text-sm",
-          rank <= 7 && "bg-green-500/20 text-green-400 font-bold"
+          rank <= 7 && "bg-blue-500/20 text-blue-300 font-bold"
         )}
       >
         {rank}
@@ -192,7 +192,7 @@ export function LeagueStandings({
                         {players.map((player, index) => (
                         <TableRow 
                             key={player.id}
-                            className={cn(index < 7 && "bg-green-500/10 hover:bg-green-500/20")}
+                            className={cn(index < 7 && "bg-blue-500/10 hover:bg-blue-500/20")}
                         >
                             <TableCell className="font-medium text-center">
                             <div className="flex justify-center items-center h-full">
@@ -290,7 +290,7 @@ export function LeagueStandings({
                                 <div className="flex justify-center items-center h-full">
                                     <div className={cn(
                                         "flex items-center justify-center h-7 w-7 rounded-full font-mono font-bold",
-                                        index < 7 && "bg-green-500/20 text-green-300"
+                                        index < 7 && "bg-blue-500/20 text-blue-300"
                                       )}>
                                         {index + 1}
                                     </div>
