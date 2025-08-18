@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import type { Match, MatchPlayer, Penalty, Settings } from "@/types";
@@ -73,8 +74,8 @@ const PlayerListItem = ({
         
         // If player was not a no-show, they are eligible for bonus points
         if (!wasNoShow) {
-            if (team === 'A' && teamBNoShows > teamANoShows) pointsChange += settings.bonusPoint; // Team A gets bonus
-            if (team === 'B' && teamANoShows > teamBNoShows) pointsChange += settings.bonusPoint; // Team B gets bonus
+            if (team === 'A' && teamANoShows > teamBNoShows) pointsChange += settings.bonusPoint; // Team A gets bonus
+            if (team === 'B' && teamBNoShows > teamANoShows) pointsChange += settings.bonusPoint; // Team B gets bonus
         }
     }
 
@@ -194,5 +195,7 @@ export function MatchHistory({ matches, onDeleteMatch, onDownloadMatch, settings
     </Card>
   );
 }
+
+    
 
     

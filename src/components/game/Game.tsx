@@ -485,10 +485,10 @@ export function Game() {
     let bonusTeamB = 0;
     let bonusMessage = "";
 
-    if (teamBNoShows > teamANoShows) { // Team A played with fewer players
+    if (teamANoShows > teamBNoShows) { // Team A played with fewer players
         bonusTeamA = settings.bonusPoint;
         bonusMessage = ` Team A gets +${settings.bonusPoint} bonus point for the less player team.`;
-    } else if (teamANoShows > teamBNoShows) { // Team B played with fewer players
+    } else if (teamBNoShows > teamANoShows) { // Team B played with fewer players
         bonusTeamB = settings.bonusPoint;
         bonusMessage = ` Team B gets +${settings.bonusPoint} bonus point for the less player team.`;
     }
@@ -586,9 +586,9 @@ export function Game() {
     const teamBNoShows = matchToDelete.teams.teamB.filter(p => matchToDelete.penalties?.[p.id] === 'no-show').length;
     let bonusTeamA = 0;
     let bonusTeamB = 0;
-    if (teamBNoShows > teamANoShows) {
+    if (teamANoShows > teamBNoShows) {
         bonusTeamA = settings.bonusPoint;
-    } else if (teamANoShows > teamBNoShows) {
+    } else if (teamBNoShows > teamANoShows) {
         bonusTeamB = settings.bonusPoint;
     }
 
@@ -1050,5 +1050,7 @@ export function Game() {
     </>
   );
 }
+
+    
 
     
