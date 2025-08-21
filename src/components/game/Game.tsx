@@ -5,7 +5,7 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import html2canvas from "html2canvas";
 import { format } from "date-fns";
-import type { Player, PlayerStatus, Team, Match, Result, Penalty, Settings, GuestPlayer } from "@/types";
+import type { Player, PlayerStatus, Team, Match, Result, Penalty, Settings, GuestPlayer, MatchPlayer } from "@/types";
 import { Header } from "@/components/game/Header";
 import { UpcomingGame } from "@/components/game/UpcomingGame";
 import { PlayerLeaderboard } from "@/components/game/PlayerLeaderboard";
@@ -27,6 +27,7 @@ import { cn } from "@/lib/utils";
 import { PlusOneManager } from "@/components/game/PlusOneManager";
 import { Toaster } from "@/components/ui/toaster";
 import { SeasonProgress } from "./SeasonProgress";
+import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 
 const MAX_PLAYERS_IN = 14;
 const MAX_GUESTS = 4;
@@ -40,6 +41,75 @@ const defaultSettings: Settings = {
   noShowPenalty: 3,
   bonusPoint: 1,
 };
+
+const PrintablePlayerListItem = ({ 
+    player,
+    team,
+    match,
+    settings 
+}: { 
+    player: MatchPlayer, 
+    team: 'A' | 'B',
+    match: Match,
+    settings: Settings 
+}) => {
+    if (!player) return null;
+    const penalty = match.penalties?.[player.id];
+    let pointsChange = 0;
+
+    if(!player.isGuest) {
+        const wasNoShow = penalty === 'no-show';
+        
+        let resultPoints = 0;
+        const playerResult = match.result === 'Draw' ? 'D' : (match.result === team ? 'W' : 'L');
+        if (playerResult === 'W') resultPoints = 3;
+        else if (playerResult === 'D') resultPoints = settings.drawPoints;
+        
+        if (!(wasNoShow && (playerResult === 'W' || playerResult === 'D'))) {
+            pointsChange += resultPoints;
+        }
+        
+        if (penalty === 'late') pointsChange -= settings.latePenalty;
+        if (penalty === 'no-show') pointsChange -= settings.noShowPenalty;
+
+        const teamANoShows = match.teams.teamA.filter(p => match.penalties?.[p.id] === 'no-show').length;
+        const teamBNoShows = match.teams.teamB.filter(p => match.penalties?.[p.id] === 'no-show').length;
+        
+        if (!wasNoShow) {
+            if (team === 'A' && teamANoShows > teamBNoShows) pointsChange += settings.bonusPoint;
+            if (team === 'B' && teamBNoShows > teamANoShows) pointsChange += settings.bonusPoint;
+        }
+    }
+
+    const pointsStr = pointsChange > 0 ? `+${pointsChange}` : `${pointsChange}`;
+
+    return (
+        <li className="flex items-center justify-between p-1">
+            <div className="flex items-center gap-2">
+                 <Avatar className="h-6 w-6">
+                    <AvatarImage src={player.photoURL} alt={player.name} />
+                    <AvatarFallback>{player.name.charAt(0)}</AvatarFallback>
+                </Avatar>
+                {player.name}
+                {player.isGuest && <span className="text-xs text-muted-foreground">(Guest)</span>}
+            </div>
+             <div className="flex items-center gap-2">
+                {penalty === 'late' && <Clock className="w-4 h-4 text-orange-400" />}
+                {penalty === 'no-show' && <UserX className="w-4 h-4 text-red-500" />}
+                {!player.isGuest && (
+                    <span className={cn(
+                        "text-xs font-mono font-semibold",
+                        pointsChange > 0 && "text-green-400",
+                        pointsChange < 0 && "text-red-400"
+                    )}>
+                        ({pointsStr} Pts)
+                    </span>
+                )}
+            </div>
+        </li>
+    );
+};
+
 
 export function Game() {
   const [players, setPlayers] = useState<Player[]>([]);
@@ -432,7 +502,7 @@ export function Game() {
             
             // No-show players don't get points for Win or Draw, or bonus points
             const pointsGained = wasNoShow ? 0 : (result === 'W' ? 3 : result === 'D' ? settings.drawPoints : 0);
-            const bonusPointsToAdd = wasNoShow ? 0 : bonusPoints;
+            const bonusPointsToAdd = (wasNoShow || p.isGuest) ? 0 : bonusPoints;
 
             return {
                 ...p,
@@ -1006,13 +1076,13 @@ export function Game() {
                     <div>
                         <h4 className="font-semibold flex items-center gap-2 mb-2 text-blue-400 text-lg"><Shield/>Team A</h4>
                         <ul className="space-y-1">
-                            {matchToPrint.teams.teamA.map(p => <li key={`pa-${p.id}`}>{p.name}{p.isGuest && ' (Guest)'}</li>)}
+                            {matchToPrint.teams.teamA.map(p => <PrintablePlayerListItem key={`pa-${p.id}`} player={p} team='A' match={matchToPrint} settings={settings} />)}
                         </ul>
                     </div>
                      <div>
                         <h4 className="font-semibold flex items-center gap-2 mb-2 text-red-400 text-lg"><Shield/>Team B</h4>
                         <ul className="space-y-1">
-                             {matchToPrint.teams.teamB.map(p => <li key={`pb-${p.id}`}>{p.name}{p.isGuest && ' (Guest)'}</li>)}
+                             {matchToPrint.teams.teamB.map(p => <PrintablePlayerListItem key={`pb-${p.id}`} player={p} team='B' match={matchToPrint} settings={settings} />)}
                         </ul>
                     </div>
                 </div>
@@ -1044,7 +1114,7 @@ export function Game() {
             <CardHeader className="printable-header text-center">
                 <CardTitle className="printable-title text-3xl font-headline">{settings.leagueName}</CardTitle>
                 <CardDescription className="printable-subtitle text-lg">
-                    Team Draft - {format(new Date(), "eeee, MMMM do, yyyy")}
+                    Team Draft - {format(new Date(), "yyyy-MM-dd")}
                 </CardDescription>
             </CardHeader>
             <CardContent className="pt-6">
@@ -1069,9 +1139,3 @@ export function Game() {
     </>
   );
 }
-
-    
-
-    
-
-    
